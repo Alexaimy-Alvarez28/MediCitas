@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Crear cuenta | MediCitas</title>
+<link rel="stylesheet" href="estilos.css">
+<script src="js/datos.js"></script>
+</head>
+<body class="fondo-auth">
+
+    <div class="auth-contenedor">
+
+        <div class="auth-logo">
+
+            <span class="logo-icono logo-icono-grande">♥</span>
+
+            <h1>MediCitas</h1>
+
+        </div>
+
+        <div class="auth-tarjeta">
+
+            <h2>Crear cuenta</h2>
+
+            <form id="formRegistro">
+
+                <div class="campo">
+
+                    <label for="nombreCompleto">Nombre completo</label>
+
+                    <input
+                        type="text"
+                        id="nombreCompleto"
+                        placeholder="Juan Pérez"
+                    >
+
+                </div>
+
+                <div class="campo">
+
+                    <label for="correo">Correo electrónico</label>
+
+                    <input
+                        type="email"
+                        id="correo"
+                        placeholder="tu@email.com"
+                    >
+
+                </div>
+
+                <div class="campo">
+
+                    <label for="telefono">Teléfono</label>
+
+                    <input
+                        type="tel"
+                        id="telefono"
+                        placeholder="(555) 123-4567"
+                    >
+
+                </div>
+
+                <div class="campo">
+
+                    <label for="contrasena">Contraseña</label>
+
+                    <input
+                        type="password"
+                        id="contrasena"
+                        placeholder="••••••••"
+                    >
+
+                </div>
+
+                <div class="campo">
+
+                    <label for="confirmarContrasena">Confirmar contraseña</label>
+
+                    <input
+                        type="password"
+                        id="confirmarContrasena"
+                        placeholder="••••••••"
+                    >
+
+                </div>
+
+                <div class="campo">
+
+                    <label for="tipoUsuario">Tipo de usuario</label>
+
+                    <select id="tipoUsuario" onchange="alternarCampoEspecialidad()">
+
+                        <option value="paciente">Paciente</option>
+
+                        <option value="doctor">Doctor</option>
+
+                    </select>
+
+                </div>
+
+                <div class="campo oculto" id="campoEspecialidad">
+
+                    <label for="especialidadUsuario">Especialidad</label>
+
+                    <select id="especialidadUsuario">
+
+                        <option value="Medicina general">Medicina general</option>
+
+                        <option value="Pediatría">Pediatría</option>
+
+                        <option value="Ginecología">Ginecología</option>
+
+                        <option value="Cardiología">Cardiología</option>
+
+                        <option value="Dermatología">Dermatología</option>
+
+                        <option value="Odontología">Odontología</option>
+
+                    </select>
+
+                </div>
+
+                <button type="submit" class="btn btn-primario btn-ancho">
+                    Registrarse
+                </button>
+
+            </form>
+
+            <p class="auth-enlace">
+                ¿Ya tienes cuenta? <a href="login.html">Iniciar sesión</a>
+            </p>
+
+        </div>
+
+        <a href="index.html" class="volver-inicio">← Volver al inicio</a>
+
+    </div>
+
+    <script>
+
+        // ========================================
+        // MOSTRAR/OCULTAR CAMPO DE ESPECIALIDAD
+        // ========================================
+        // Solo los doctores necesitan especialidad
+        // ========================================
+
+        function alternarCampoEspecialidad() {
+
+            const tipoUsuario =
+                document.getElementById("tipoUsuario").value;
+
+            const campoEspecialidad =
+                document.getElementById("campoEspecialidad");
+
+
+            if (tipoUsuario === "doctor") {
+
+                campoEspecialidad.classList.remove("oculto");
+
+            } else {
+
+                campoEspecialidad.classList.add("oculto");
+
+            }
+
+        }
+
+
+        // ========================================
+        // MANEJAR ENVÍO DEL FORMULARIO DE REGISTRO
+        // ========================================
+
+        const formRegistro =
+            document.getElementById("formRegistro");
+
+        formRegistro.addEventListener("submit", function(evento) {
+
+            // Evitar que la página se recargue
+            evento.preventDefault();
+
+
+            // Obtener valores del formulario
+            const nombre =
+                document.getElementById("nombreCompleto").value.trim();
+
+            const correo =
+                document.getElementById("correo").value.trim();
+
+            const telefono =
+                document.getElementById("telefono").value.trim();
+
+            const contrasena =
+                document.getElementById("contrasena").value;
+
+            const confirmarContrasena =
+                document.getElementById("confirmarContrasena").value;
+
+            const tipoUsuario =
+                document.getElementById("tipoUsuario").value;
+
+            const especialidad =
+                tipoUsuario === "doctor"
+                    ? document.getElementById("especialidadUsuario").value
+                    : "";
+            if (
+                nombre === "" ||
+                correo === "" ||
+                telefono === "" ||
+                contrasena === "" ||
+                confirmarContrasena === ""
+            ) {
+
+                alert("Por favor, completa todos los campos.");
+
+                return;
+
+            }
+
+
+            // Validar que las contraseñas coincidan
+            if (contrasena !== confirmarContrasena) {
+
+                alert("Las contraseñas no coinciden.");
+
+                return;
+
+            }
+
+
+            // Verificar que el correo no esté ya registrado
+            const usuarios =
+                obtenerUsuarios();
+
+            const correoExistente =
+                usuarios.find(function(usuario) {
+
+                    return usuario.correo.toLowerCase() === correo.toLowerCase();
+
+                });
+
+
+            if (correoExistente) {
+
+                alert("Ya existe una cuenta registrada con ese correo.");
+
+                return;
+
+            }
+
+
+            // Crear nuevo usuario
+            const nuevoUsuario = {
+
+                id: Date.now(),
+
+                nombre: nombre,
+
+                correo: correo,
+
+                telefono: telefono,
+
+                contrasena: contrasena,
+
+                tipo: tipoUsuario,
+
+                especialidad: especialidad
+
+            };
+
+
+            usuarios.push(nuevoUsuario);
+
+            guardarUsuarios(usuarios);
+
+
+            // Mensaje de confirmación
+            alert("Registro exitoso");
+
+
+            // Redirigir al login
+            window.location.href = "login.html";
+
+        });
+
+    </script>
+
+</body>
+</html>

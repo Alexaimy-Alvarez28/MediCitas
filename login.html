@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Iniciar sesión | MediCitas</title>
+<link rel="stylesheet" href="estilos.css">
+<script src="js/datos.js"></script>
+</head>
+<body class="fondo-auth">
+
+    <div class="auth-contenedor">
+
+        <div class="auth-logo">
+
+            <span class="logo-icono logo-icono-grande">♥</span>
+
+            <h1>MediCitas</h1>
+
+        </div>
+
+        <div class="auth-tarjeta">
+
+            <h2>Iniciar sesión</h2>
+
+            <form id="formLogin">
+
+                <div class="campo">
+
+                    <label for="correoLogin">Correo</label>
+
+                    <input
+                        type="email"
+                        id="correoLogin"
+                        placeholder="tu@email.com"
+                    >
+
+                </div>
+
+                <div class="campo">
+
+                    <label for="contrasenaLogin">Contraseña</label>
+
+                    <input
+                        type="password"
+                        id="contrasenaLogin"
+                        placeholder="••••••••"
+                    >
+
+                </div>
+
+                <button type="submit" class="btn btn-primario btn-ancho">
+                    Entrar
+                </button>
+
+            </form>
+
+            <p class="auth-enlace">
+                ¿No tienes cuenta? <a href="registro.html">Crear cuenta</a>
+            </p>
+
+        </div>
+
+        <a href="index.html" class="volver-inicio">← Volver al inicio</a>
+
+    </div>
+
+    <script>
+
+        // ========================================
+        // MANEJAR ENVÍO DEL FORMULARIO DE LOGIN
+        // ========================================
+
+        const formLogin =
+            document.getElementById("formLogin");
+
+        formLogin.addEventListener("submit", function(evento) {
+
+            evento.preventDefault();
+
+
+            const correo =
+                document.getElementById("correoLogin").value.trim();
+
+            const contrasena =
+                document.getElementById("contrasenaLogin").value;
+
+
+            if (correo === "" || contrasena === "") {
+
+                alert("Por favor, completa todos los campos.");
+
+                return;
+
+            }
+
+
+            // Buscar usuario que coincida con correo y contraseña
+            const usuarios =
+                obtenerUsuarios();
+
+            const usuario =
+                usuarios.find(function(usuario) {
+
+                    return (
+                        usuario.correo.toLowerCase() === correo.toLowerCase() &&
+                        usuario.contrasena === contrasena
+                    );
+
+                });
+
+
+            if (!usuario) {
+
+                alert("Correo o contraseña incorrectos.");
+
+                return;
+
+            }
+
+
+            // Guardar la sesión activa
+            guardarSesion(usuario.id);
+
+
+            // Redirigir según el tipo de usuario
+            if (usuario.tipo === "doctor") {
+
+                window.location.href = "dashboard-doctor.html";
+
+                return;
+
+            }
+
+
+            window.location.href = "dashboard-paciente.html";
+
+        });
+
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel del paciente | MediCitas</title>
+<link rel="stylesheet" href="estilos.css">
+<script src="js/datos.js"></script>
+</head>
+<body class="fondo-dashboard">
+
+    <div class="layout-dashboard">
+
+        <!-- ========================================
+        BARRA LATERAL
+        ======================================== -->
+
+        <aside class="sidebar">
+
+            <div class="sidebar-logo">
+
+                <span class="logo-icono">♥</span>
+
+                <span class="logo-texto">MediCitas</span>
+
+            </div>
+
+            <nav class="sidebar-nav">
+
+                <button
+                    class="nav-item activo"
+                    data-seccion="inicio"
+                    onclick="mostrarSeccionPaciente('inicio')">
+
+                    <span><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5"/><path d="M5 10v10a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V10"/></svg></span> Inicio
+
+                </button>
+
+                <button
+                    class="nav-item"
+                    data-seccion="citas"
+                    onclick="mostrarSeccionPaciente('citas')">
+
+                    <span><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span> Mis citas
+
+                </button>
+
+                <button
+                    class="nav-item"
+                    data-seccion="agendar"
+                    onclick="mostrarSeccionPaciente('agendar')">
+
+                    <span><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M12 14v4M10 16h4"/></svg></span> Agendar cita
+
+                </button>
+
+                <button
+                    class="nav-item"
+                    data-seccion="perfil"
+                    onclick="mostrarSeccionPaciente('perfil')">
+
+                    <span><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></span> Perfil
+
+                </button>
+
+            </nav>
+
+            <button class="btn-cerrar-sesion" onclick="cerrarSesion()">
+
+                <span><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg></span> Cerrar sesión
+
+            </button>
+
+        </aside>
+
+
+        <!-- ========================================
+        CONTENIDO PRINCIPAL
+        ======================================== -->
+
+        <main class="panel-principal">
+
+            <div class="panel-header">
+
+                <div>
+
+                    <h1 id="tituloBienvenida">Bienvenido</h1>
+
+                    <p>Panel de control</p>
+
+                </div>
+
+                <div class="campana-contenedor">
+
+                    <button
+                        class="campana"
+                        aria-label="Notificaciones"
+                        onclick="alternarPanelNotificaciones()">
+
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+
+                        <span id="contadorNotificaciones" class="contador-notificaciones oculto">0</span>
+
+                    </button>
+
+                    <div id="panelNotificaciones" class="panel-notificaciones oculto">
+
+                        <h4>Notificaciones</h4>
+
+                        <div id="listaNotificaciones">
+
+                            <p class="texto-vacio">No tienes notificaciones</p>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- ========================================
+            SECCIÓN: INICIO
+            ======================================== -->
+
+            <section id="seccionInicio" class="seccion-dashboard">
+
+                <div id="bannerInicio" class="banner-gradiente">
+
+                    <div class="banner-encabezado">
+
+                        <div>
+
+                            <h3 id="bannerTitulo">No tienes citas agendadas</h3>
+
+                            <p id="bannerTexto">
+                                Agenda tu primera cita médica usando el botón de abajo
+                            </p>
+
+                        </div>
+
+                        <button
+                            id="btnCompletarProxima"
+                            class="btn-completar oculto"
+                            onclick="completarProximaCita()">
+
+                            Completada
+
+                        </button>
+
+                    </div>
+
+                </div>
+
+                <div class="botones-inicio">
+
+                    <button
+                        class="btn btn-primario"
+                        onclick="mostrarSeccionPaciente('agendar')">
+
+                        Agendar nueva cita
+
+                    </button>
+
+                    <button
+                        class="btn btn-peligro"
+                        onclick="cancelarProximaCita()">
+
+                        Cancelar cita
+
+                    </button>
+
+                </div>
+
+                <div class="tarjeta-blanca">
+
+                    <h3 class="tarjeta-titulo">Historial de citas</h3>
+
+                    <div id="historialCitas">
+
+                        <p class="texto-vacio">No tienes citas registradas aún</p>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- ========================================
+            SECCIÓN: MIS CITAS
+            ======================================== -->
+
+            <section id="seccionCitas" class="seccion-dashboard oculto">
+
+                <div class="tarjeta-blanca">
+
+                    <h3 class="tarjeta-titulo">Todas mis citas</h3>
+
+                    <div id="listaMisCitas">
+
+                        <p class="texto-vacio">No tienes citas registradas aún</p>
+
+                        <div class="centrado">
+
+                            <button
+                                class="btn btn-primario"
+                                onclick="mostrarSeccionPaciente('agendar')">
+
+                                Agendar primera cita
+
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- ========================================
+            SECCIÓN: AGENDAR CITA
+            ======================================== -->
+
+            <section id="seccionAgendar" class="seccion-dashboard oculto">
+
+                <a
+                    href="#"
+                    class="volver-dashboard"
+                    onclick="mostrarSeccionPaciente('inicio'); return false;">
+
+                    ← Volver al dashboard
+
+                </a>
+
+                <div class="tarjeta-blanca">
+
+                    <div class="campo">
+
+                        <label for="especialidadCita">Área</label>
+
+                        <select id="especialidadCita" onchange="cargarDoctoresDisponibles()">
+
+                            <option value="">Selecciona un área</option>
+
+                            <option value="Medicina general">Medicina general</option>
+
+                            <option value="Pediatría">Pediatría</option>
+
+                            <option value="Ginecología">Ginecología</option>
+
+                            <option value="Cardiología">Cardiología</option>
+
+                            <option value="Dermatología">Dermatología</option>
+
+                            <option value="Odontología">Odontología</option>
+
+                        </select>
+
+                    </div>
+
+                    <div class="campo">
+
+                        <label for="doctorCita">Doctor</label>
+
+                        <select id="doctorCita">
+
+                            <option value="">Selecciona un doctor</option>
+
+                        </select>
+
+                        <p id="avisoDoctor" class="aviso-advertencia oculto">
+                            Selecciona primero un área.
+                        </p>
+
+                    </div>
+
+                    <div class="campo">
+
+                        <label for="fechaCita">Fecha</label>
+
+                        <input type="date" id="fechaCita">
+
+                    </div>
+
+                    <div class="campo">
+
+                        <label for="horaCita">Hora</label>
+
+                        <select id="horaCita">
+
+                            <option value="">Selecciona una hora</option>
+
+                            <option value="8:00 AM">8:00 AM</option>
+
+                            <option value="9:00 AM">9:00 AM</option>
+
+                            <option value="10:00 AM">10:00 AM</option>
+
+                            <option value="11:00 AM">11:00 AM</option>
+
+                            <option value="1:00 PM">1:00 PM</option>
+
+                            <option value="2:00 PM">2:00 PM</option>
+
+                            <option value="3:00 PM">3:00 PM</option>
+
+                            <option value="4:00 PM">4:00 PM</option>
+
+                        </select>
+
+                    </div>
+
+                    <button
+                        class="btn btn-primario btn-ancho"
+                        onclick="confirmarCita()">
+
+                        Confirmar cita
+
+                    </button>
+
+                </div>
+
+            </section>
+
+
+            <!-- ========================================
+            SECCIÓN: PERFIL
+            ======================================== -->
+
+            <section id="seccionPerfil" class="seccion-dashboard oculto">
+
+                <div class="tarjeta-blanca">
+
+                    <h3 class="tarjeta-titulo">Datos personales</h3>
+
+                    <div class="campo">
+
+                        <label for="perfilNombre">Nombre</label>
+
+                        <input type="text" id="perfilNombre" readonly>
+
+                    </div>
+
+                    <div class="campo">
+
+                        <label for="perfilCorreo">Correo</label>
+
+                        <input type="email" id="perfilCorreo" readonly>
+
+                    </div>
+
+                    <div class="campo">
+
+                        <label for="perfilTelefono">Teléfono</label>
+
+                        <input type="tel" id="perfilTelefono" readonly>
+
+                    </div>
+
+                    <div class="campo">
+
+                        <label for="perfilTipo">Tipo de usuario</label>
+
+                        <input type="text" id="perfilTipo" readonly>
+
+                    </div>
+
+                    <div class="campo">
+
+                        <label for="perfilDireccion">Dirección</label>
+
+                        <input
+                            type="text"
+                            id="perfilDireccion"
+                            placeholder="Calle, número, sector, ciudad"
+                        >
+
+                    </div>
+
+                </div>
+
+                <div class="tarjeta-blanca">
+
+                    <h3 class="tarjeta-titulo">Información médica y de emergencia</h3>
+
+                    <div class="campo">
+
+                        <label for="perfilAlergias">Alergias</label>
+
+                        <input
+                            type="text"
+                            id="perfilAlergias"
+                            placeholder="Ej. Penicilina, mariscos, ninguna..."
+                        >
+
+                    </div>
+
+                    <div class="campo">
+
+                        <label for="perfilTipoSangre">Tipo de sangre</label>
+
+                        <select id="perfilTipoSangre">
+
+                            <option value="">Selecciona tu tipo de sangre</option>
+
+                            <option value="O+">O+</option>
+
+                            <option value="O-">O-</option>
+
+                            <option value="A+">A+</option>
+
+                            <option value="A-">A-</option>
+
+                            <option value="B+">B+</option>
+
+                            <option value="B-">B-</option>
+
+                            <option value="AB+">AB+</option>
+
+                            <option value="AB-">AB-</option>
+
+                            <option value="No sé / No aplica">No sé / No aplica</option>
+
+                        </select>
+
+                    </div>
+
+                    <h4 class="subtitulo-perfil">Contacto de emergencia</h4>
+
+                    <div class="campo">
+
+                        <label for="perfilEmergenciaNombre">Nombre</label>
+
+                        <input
+                            type="text"
+                            id="perfilEmergenciaNombre"
+                            placeholder="Nombre completo"
+                        >
+
+                    </div>
+
+                    <div class="campo">
+
+                        <label for="perfilEmergenciaParentesco">Parentesco</label>
+
+                        <select id="perfilEmergenciaParentesco">
+
+                            <option value="">Selecciona el parentesco</option>
+
+                            <option value="Padre">Padre</option>
+
+                            <option value="Madre">Madre</option>
+
+                            <option value="Hermano(a)">Hermano(a)</option>
+
+                            <option value="Esposo(a)">Esposo(a)</option>
+
+                            <option value="Hijo(a)">Hijo(a)</option>
+
+                            <option value="Amigo(a)">Amigo(a)</option>
+
+                            <option value="Otro">Otro</option>
+
+                        </select>
+
+                    </div>
+
+                    <div class="campo">
+
+                        <label for="perfilEmergenciaTelefono">Teléfono</label>
+
+                        <input
+                            type="tel"
+                            id="perfilEmergenciaTelefono"
+                            placeholder="(555) 123-4567"
+                        >
+
+                        <p class="aviso-advertencia oculto" id="avisoEmergenciaTelefono">
+                            El teléfono de emergencia no puede ser el mismo que tu teléfono personal.
+                        </p>
+
+                    </div>
+
+                    <button
+                        class="btn btn-primario"
+                        onclick="guardarPerfilPaciente()">
+
+                        Guardar cambios
+
+                    </button>
+
+                </div>
+
+            </section>
+
+
+            <footer class="footer-dashboard">
+                © 2026 MediCitas. Todos los derechos reservados.
+            </footer>
+
+        </main>
+
+    </div>
+
+    <script src="js/dashboard-paciente.js"></script>
+
+</body>
+</html>
