@@ -1,0 +1,28 @@
+### Registro de paciente
+POST http://localhost:3000/api/auth/registro
+Content-Type: application/json
+
+{
+    "nombre": "Juan Rodríguez",
+    "correo": "juan@correo.com",
+    "telefono": "(555) 123-4567",
+    "contrasena": "ClaveSegura123"
+}
+
+### Login correcto
+POST http://localhost:3000/api/auth/login
+Content-Type: application/json
+
+{
+    "correo": "juan@correo.com",
+    "contrasena": "ClaveSegura123"
+}
+
+### Login con clave incorrecta
+POST http://localhost:3000/api/auth/login
+Content-Type: application/json
+
+{
+    "correo": "juan@correo.com",
+    "contrasena": "otraclave"
+}

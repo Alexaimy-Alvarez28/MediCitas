@@ -6,7 +6,7 @@ const pool = require("./db");
 const app = express();
 
 app.use(express.json());
-
+app.use("/api/auth", require("./routes/auth"));
 
 app.get("/api/salud", async function(peticion, respuesta) {
 
