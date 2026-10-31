@@ -2,7 +2,7 @@ const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const pool = require("../db");
-
+const { verificarToken } = require("../middlewares/auth");
 
 const router = express.Router();
 
@@ -191,5 +191,36 @@ router.post("/login", async function(peticion, respuesta) {
 
 });
 
+
+router.get("/yo", verificarToken, async function(peticion, respuesta) {
+
+    try {
+
+        const resultado = await pool.query(
+            "SELECT id, correo, rol FROM usuarios WHERE id = $1",
+            [peticion.usuario.id]
+        );
+
+        if (resultado.rows.length === 0) {
+
+            return respuesta.status(404).json({
+                mensaje: "Usuario no encontrado"
+            });
+
+        }
+
+        respuesta.json(resultado.rows[0]);
+
+    } catch (error) {
+
+        console.error(error);
+
+        respuesta.status(500).json({
+            mensaje: "Error al obtener el usuario"
+        });
+
+    }
+
+});
 
 module.exports = router;

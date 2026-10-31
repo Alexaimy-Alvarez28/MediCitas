@@ -26,3 +26,24 @@ Content-Type: application/json
     "correo": "juan@correo.com",
     "contrasena": "otraclave"
 }
+
+### Login del admin (guarda la respuesta con el nombre "loginAdmin")
+# @name loginAdmin
+POST http://localhost:3000/api/auth/login
+Content-Type: application/json
+
+{
+    "correo": "admin@clinica.com",
+    "contrasena": "ClaveAdmin2026"
+}
+
+### Quién soy (con token)
+GET http://localhost:3000/api/auth/yo
+Authorization: Bearer {{loginAdmin.response.body.token}}
+
+### Sin token (debe dar 401)
+GET http://localhost:3000/api/auth/yo
+
+### Con token falso (debe dar 401)
+GET http://localhost:3000/api/auth/yo
+Authorization: Bearer token-inventado
