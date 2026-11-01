@@ -47,3 +47,84 @@ GET http://localhost:3000/api/auth/yo
 ### Con token falso (debe dar 401)
 GET http://localhost:3000/api/auth/yo
 Authorization: Bearer token-inventado
+
+### Login del paciente
+# @name loginPaciente
+POST http://localhost:3000/api/auth/login
+Content-Type: application/json
+
+{
+    "correo": "juan@correo.com",
+    "contrasena": "ClaveSegura123"
+}
+
+### El ADMIN crea un doctor (debe dar 201)
+POST http://localhost:3000/api/doctores
+Content-Type: application/json
+Authorization: Bearer {{loginAdmin.response.body.token}}
+
+{
+    "nombre": "Carlos Martínez",
+    "correo": "dr.carlos@clinica.com",
+    "contrasena": "Temporal2026",
+    "especialidad": "Cardiología",
+    "telefono": "(555) 987-6543",
+    "precioConsulta": 2000
+}
+
+### Repetir el mismo (debe dar 409)
+POST http://localhost:3000/api/doctores
+Content-Type: application/json
+Authorization: Bearer {{loginAdmin.response.body.token}}
+
+{
+    "nombre": "Carlos Martínez",
+    "correo": "dr.carlos@clinica.com",
+    "contrasena": "Temporal2026",
+    "especialidad": "Cardiología"
+}
+
+### Un PACIENTE intenta crear un doctor (debe dar 403)
+POST http://localhost:3000/api/doctores
+Content-Type: application/json
+Authorization: Bearer {{loginPaciente.response.body.token}}
+
+{
+    "nombre": "Falso Doctor",
+    "correo": "falso@clinica.com",
+    "contrasena": "Temporal2026",
+    "especialidad": "Pediatría"
+}
+
+### Sin token (debe dar 401)
+POST http://localhost:3000/api/doctores
+Content-Type: application/json
+
+{
+    "nombre": "Falso Doctor"
+}
+
+### Datos incompletos (debe dar 400)
+POST http://localhost:3000/api/doctores
+Content-Type: application/json
+Authorization: Bearer {{loginAdmin.response.body.token}}
+
+{
+    "nombre": "Sin correo"
+}
+
+### Un paciente SÍ puede ver la lista (debe dar 200)
+GET http://localhost:3000/api/doctores
+Authorization: Bearer {{loginPaciente.response.body.token}}
+
+### La lista ya no es pública (debe dar 401)
+GET http://localhost:3000/api/doctores
+
+### Login del nuevo doctor (debe dar rol doctor)
+POST http://localhost:3000/api/auth/login
+Content-Type: application/json
+
+{
+    "correo": "dr.carlos@clinica.com",
+    "contrasena": "Temporal2026"
+}
