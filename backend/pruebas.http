@@ -128,3 +128,83 @@ Content-Type: application/json
     "correo": "dr.carlos@clinica.com",
     "contrasena": "Temporal2026"
 }
+
+
+### Login del doctor
+# @name loginDoctor
+POST http://localhost:3000/api/auth/login
+Content-Type: application/json
+
+{
+    "correo": "dr.carlos@clinica.com",
+    "contrasena": "Temporal2026"
+}
+
+### Paciente agenda una cita (201)
+# @name crearCita
+POST http://localhost:3000/api/citas
+Content-Type: application/json
+Authorization: Bearer {{loginPaciente.response.body.token}}
+
+{
+    "doctorId": 3,
+    "fecha": "2026-11-10",
+    "hora": "09:00",
+    "motivo": "Control general"
+}
+
+### Mismo horario otra vez (409: ocupado)
+POST http://localhost:3000/api/citas
+Content-Type: application/json
+Authorization: Bearer {{loginPaciente.response.body.token}}
+
+{
+    "doctorId": 3,
+    "fecha": "2026-11-10",
+    "hora": "09:00"
+}
+
+### Fecha pasada (400)
+POST http://localhost:3000/api/citas
+Content-Type: application/json
+Authorization: Bearer {{loginPaciente.response.body.token}}
+
+{
+    "doctorId": 3,
+    "fecha": "2020-01-01",
+    "hora": "09:00"
+}
+
+### Hora inválida (400)
+POST http://localhost:3000/api/citas
+Content-Type: application/json
+Authorization: Bearer {{loginPaciente.response.body.token}}
+
+{
+    "doctorId": 3,
+    "fecha": "2026-11-10",
+    "hora": "07:00"
+}
+
+### Doctor agenda manualmente para el paciente 1 (201, origen "manual")
+POST http://localhost:3000/api/citas
+Content-Type: application/json
+Authorization: Bearer {{loginDoctor.response.body.token}}
+
+{
+    "pacienteId": 1,
+    "fecha": "2026-11-10",
+    "hora": "10:00",
+    "motivo": "Cita registrada por recepción"
+}
+
+### El paciente ve SUS citas (200)
+GET http://localhost:3000/api/citas
+Authorization: Bearer {{loginPaciente.response.body.token}}
+
+### El doctor ve las del día (200)
+GET http://localhost:3000/api/citas?fecha=2026-11-10
+Authorization: Bearer {{loginDoctor.response.body.token}}
+
+### Sin token (401)
+GET http://localhost:3000/api/citas
