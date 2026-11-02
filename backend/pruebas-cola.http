@@ -1,0 +1,187 @@
+### 1. Login del doctor
+# @name loginDoctor
+POST http://localhost:3000/api/auth/login
+Content-Type: application/json
+
+{
+    "correo": "dr.carlos@clinica.com",
+    "contrasena": "Temporal2026"
+}
+
+### 2. Login del paciente
+# @name loginPaciente
+POST http://localhost:3000/api/auth/login
+Content-Type: application/json
+
+{
+    "correo": "juan@correo.com",
+    "contrasena": "ClaveSegura123"
+}
+
+### 3. Registrar paciente Rosa (201)
+# @name pacienteRosa
+POST http://localhost:3000/api/pacientes
+Content-Type: application/json
+Authorization: Bearer {{loginDoctor.response.body.token}}
+
+{
+    "nombre": "Rosa Almonte",
+    "telefono": "(555) 301-0001"
+}
+
+### 4. Registrar paciente Miguel (201)
+# @name pacienteMiguel
+POST http://localhost:3000/api/pacientes
+Content-Type: application/json
+Authorization: Bearer {{loginDoctor.response.body.token}}
+
+{
+    "nombre": "Miguel Reyes",
+    "telefono": "(555) 301-0002"
+}
+
+### 5. Cita de Rosa a las 09:00 (201)
+# @name citaRosa
+POST http://localhost:3000/api/citas
+Content-Type: application/json
+Authorization: Bearer {{loginDoctor.response.body.token}}
+
+{
+    "pacienteId": {{pacienteRosa.response.body.id}},
+    "fecha": "2026-11-12",
+    "hora": "09:00",
+    "motivo": "Control"
+}
+
+### 6. Cita de Miguel a las 10:00 (201)
+# @name citaMiguel
+POST http://localhost:3000/api/citas
+Content-Type: application/json
+Authorization: Bearer {{loginDoctor.response.body.token}}
+
+{
+    "pacienteId": {{pacienteMiguel.response.body.id}},
+    "fecha": "2026-11-12",
+    "hora": "10:00",
+    "motivo": "Dolor de pecho"
+}
+
+### 7. Cola del día: ambas en pendientesDeConfirmar (200)
+GET http://localhost:3000/api/citas/cola?fecha=2026-11-12
+Authorization: Bearer {{loginDoctor.response.body.token}}
+
+### 8. Saltarse un paso: Pendiente a En sala (409)
+PATCH http://localhost:3000/api/citas/{{citaRosa.response.body.id}}/estado
+Content-Type: application/json
+Authorization: Bearer {{loginDoctor.response.body.token}}
+
+{
+    "estado": "En sala"
+}
+
+### 9. Estado inventado (400)
+PATCH http://localhost:3000/api/citas/{{citaRosa.response.body.id}}/estado
+Content-Type: application/json
+Authorization: Bearer {{loginDoctor.response.body.token}}
+
+{
+    "estado": "Volando"
+}
+
+### 10. Confirmar a Rosa (200)
+PATCH http://localhost:3000/api/citas/{{citaRosa.response.body.id}}/estado
+Content-Type: application/json
+Authorization: Bearer {{loginDoctor.response.body.token}}
+
+{
+    "estado": "Confirmada"
+}
+
+### 11. Confirmar a Miguel (200)
+PATCH http://localhost:3000/api/citas/{{citaMiguel.response.body.id}}/estado
+Content-Type: application/json
+Authorization: Bearer {{loginDoctor.response.body.token}}
+
+{
+    "estado": "Confirmada"
+}
+
+### 12. Rosa llega: En sala (200, trae hora_llegada)
+PATCH http://localhost:3000/api/citas/{{citaRosa.response.body.id}}/estado
+Content-Type: application/json
+Authorization: Bearer {{loginDoctor.response.body.token}}
+
+{
+    "estado": "En sala"
+}
+
+### 13. Miguel llega: En sala (200)
+PATCH http://localhost:3000/api/citas/{{citaMiguel.response.body.id}}/estado
+Content-Type: application/json
+Authorization: Bearer {{loginDoctor.response.body.token}}
+
+{
+    "estado": "En sala"
+}
+
+### 14. Cola: Rosa turno 1, Miguel turno 2 (200)
+GET http://localhost:3000/api/citas/cola?fecha=2026-11-12
+Authorization: Bearer {{loginDoctor.response.body.token}}
+
+### 15. Iniciar consulta de Rosa (200, trae hora_inicio)
+PATCH http://localhost:3000/api/citas/{{citaRosa.response.body.id}}/estado
+Content-Type: application/json
+Authorization: Bearer {{loginDoctor.response.body.token}}
+
+{
+    "estado": "En consulta"
+}
+
+### 16. Iniciar a Miguel con Rosa aún en consulta (409)
+PATCH http://localhost:3000/api/citas/{{citaMiguel.response.body.id}}/estado
+Content-Type: application/json
+Authorization: Bearer {{loginDoctor.response.body.token}}
+
+{
+    "estado": "En consulta"
+}
+
+### 17. Un PACIENTE intenta cambiar un estado (403)
+PATCH http://localhost:3000/api/citas/{{citaRosa.response.body.id}}/estado
+Content-Type: application/json
+Authorization: Bearer {{loginPaciente.response.body.token}}
+
+{
+    "estado": "Completada"
+}
+
+### 18. Completar a Rosa (200, trae hora_fin)
+PATCH http://localhost:3000/api/citas/{{citaRosa.response.body.id}}/estado
+Content-Type: application/json
+Authorization: Bearer {{loginDoctor.response.body.token}}
+
+{
+    "estado": "Completada"
+}
+
+### 19. Ahora sí: iniciar consulta de Miguel (200)
+PATCH http://localhost:3000/api/citas/{{citaMiguel.response.body.id}}/estado
+Content-Type: application/json
+Authorization: Bearer {{loginDoctor.response.body.token}}
+
+{
+    "estado": "En consulta"
+}
+
+### 20. Cola final: Miguel en consulta, nadie en espera (200)
+GET http://localhost:3000/api/citas/cola?fecha=2026-11-12
+Authorization: Bearer {{loginDoctor.response.body.token}}
+
+### 21. Completar a Miguel (200)
+PATCH http://localhost:3000/api/citas/{{citaMiguel.response.body.id}}/estado
+Content-Type: application/json
+Authorization: Bearer {{loginDoctor.response.body.token}}
+
+{
+    "estado": "Completada"
+}

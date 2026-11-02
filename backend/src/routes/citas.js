@@ -19,6 +19,45 @@ const HORAS_VALIDAS = [
 
 
 // ========================================
+// MÁQUINA DE ESTADOS
+// ========================================
+// Para cada estado actual, a cuáles se puede pasar.
+// ========================================
+
+const TRANSICIONES = {
+
+    "Pendiente": ["Confirmada", "Cancelada"],
+
+    "Confirmada": ["En sala", "No asistio", "Cancelada"],
+
+    "En sala": ["En consulta", "Cancelada"],
+
+    "En consulta": ["Completada"],
+
+    "Completada": [],
+
+    "Cancelada": [],
+
+    "No asistio": []
+
+};
+
+
+// Al entrar a estos estados se guarda la hora exacta.
+// Es un mapa FIJO nuestro (los nombres de columna no pueden
+// ir como parámetro, y nunca se usa nada que venga del cliente).
+const COLUMNA_TIEMPO = {
+
+    "En sala": "hora_llegada",
+
+    "En consulta": "hora_inicio",
+
+    "Completada": "hora_fin"
+
+};
+
+
+// ========================================
 // FUNCIONES AUXILIARES
 // ========================================
 
@@ -281,6 +320,259 @@ router.get(
 
             respuesta.status(500).json({
                 mensaje: "Error al obtener las citas"
+            });
+
+        }
+
+    }
+);
+
+
+// ========================================
+// GET /api/citas/cola?fecha=AAAA-MM-DD
+// La cola de espera del día de ESTE doctor
+// ========================================
+// Si no se indica fecha, se usa la de hoy.
+// ========================================
+
+router.get(
+    "/cola",
+    verificarToken,
+    soloRoles("doctor"),
+    async function(peticion, respuesta) {
+
+        const fecha =
+            peticion.query.fecha !== undefined
+                ? String(peticion.query.fecha)
+                : fechaDeHoy();
+
+        if (!fechaValida(fecha)) {
+
+            return respuesta.status(400).json({
+                mensaje: "La fecha debe tener el formato AAAA-MM-DD"
+            });
+
+        }
+
+
+        try {
+
+            const doctorId =
+                await obtenerDoctorId(peticion.usuario.id);
+
+            if (doctorId === null) {
+
+                return respuesta.status(404).json({
+                    mensaje: "No se encontró tu perfil de doctor"
+                });
+
+            }
+
+
+            // ROW_NUMBER numera a los pacientes que están en sala
+            // según su hora de llegada: ese es su turno.
+            const resultado = await pool.query(
+                "SELECT c.id, c.estado, " +
+                "to_char(c.hora, 'HH24:MI') AS hora, " +
+                "c.origen, c.motivo, p.nombre AS paciente, " +
+                "c.hora_llegada, c.hora_inicio, " +
+                "CASE WHEN c.estado = 'En sala' THEN " +
+                "(ROW_NUMBER() OVER (PARTITION BY c.estado " +
+                "ORDER BY c.hora_llegada))::int END AS turno, " +
+                "CASE WHEN c.estado = 'En sala' THEN " +
+                "(EXTRACT(EPOCH FROM (NOW() - c.hora_llegada)) / 60)::int " +
+                "END AS minutos_espera " +
+                "FROM citas c " +
+                "JOIN pacientes p ON p.id = c.paciente_id " +
+                "WHERE c.doctor_id = $1 AND c.fecha = $2 " +
+                "AND c.estado IN " +
+                "('Pendiente', 'Confirmada', 'En sala', 'En consulta') " +
+                "ORDER BY c.hora",
+                [doctorId, fecha]
+            );
+
+            const filas = resultado.rows;
+
+            respuesta.json({
+
+                fecha: fecha,
+
+                enConsulta:
+                    filas.find(function(fila) {
+
+                        return fila.estado === "En consulta";
+
+                    }) || null,
+
+                enEspera:
+                    filas.filter(function(fila) {
+
+                        return fila.estado === "En sala";
+
+                    }).sort(function(a, b) {
+
+                        return a.turno - b.turno;
+
+                    }),
+
+                porLlegar:
+                    filas.filter(function(fila) {
+
+                        return fila.estado === "Confirmada";
+
+                    }),
+
+                pendientesDeConfirmar:
+                    filas.filter(function(fila) {
+
+                        return fila.estado === "Pendiente";
+
+                    })
+
+            });
+
+        } catch (error) {
+
+            console.error(error);
+
+            respuesta.status(500).json({
+                mensaje: "Error al obtener la cola"
+            });
+
+        }
+
+    }
+);
+
+
+// ========================================
+// PATCH /api/citas/:id/estado
+// Mueve la cita por el flujo (doctor / recepción)
+// ========================================
+// Body: { "estado": "Confirmada" }
+// ========================================
+
+router.patch(
+    "/:id/estado",
+    verificarToken,
+    soloRoles("doctor"),
+    async function(peticion, respuesta) {
+
+        const id = Number(peticion.params.id);
+
+        if (!Number.isInteger(id)) {
+
+            return respuesta.status(400).json({
+                mensaje: "El id debe ser un número"
+            });
+
+        }
+
+        const nuevoEstado =
+            String(peticion.body.estado || "").trim();
+
+        if (!Object.prototype.hasOwnProperty.call(TRANSICIONES, nuevoEstado)) {
+
+            return respuesta.status(400).json({
+                mensaje: "Estado no válido"
+            });
+
+        }
+
+
+        try {
+
+            const doctorId =
+                await obtenerDoctorId(peticion.usuario.id);
+
+            const busqueda = await pool.query(
+                "SELECT id, doctor_id, estado FROM citas WHERE id = $1",
+                [id]
+            );
+
+            const cita = busqueda.rows[0];
+
+            if (!cita) {
+
+                return respuesta.status(404).json({
+                    mensaje: "Cita no encontrada"
+                });
+
+            }
+
+            // Solo el doctor dueño de la cita puede moverla
+            if (cita.doctor_id !== doctorId) {
+
+                return respuesta.status(403).json({
+                    mensaje: "No tienes permiso para modificar esta cita"
+                });
+
+            }
+
+            // ¿Esa transición está permitida?
+            if (!TRANSICIONES[cita.estado].includes(nuevoEstado)) {
+
+                return respuesta.status(409).json({
+                    mensaje:
+                        "No se puede pasar de " + cita.estado +
+                        " a " + nuevoEstado
+                });
+
+            }
+
+
+            // Armamos el UPDATE: si el nuevo estado guarda una hora,
+            // agregamos esa columna (sale de nuestro mapa fijo)
+            let sql = "UPDATE citas SET estado = $1";
+
+            const columna = COLUMNA_TIEMPO[nuevoEstado];
+
+            if (columna) {
+
+                sql = sql + ", " + columna + " = NOW()";
+
+            }
+
+            // "AND estado = $3": si alguien cambió la cita justo
+            // antes que nosotros, este UPDATE no encuentra fila
+            sql = sql +
+                " WHERE id = $2 AND estado = $3" +
+                " RETURNING id, estado, hora_llegada, hora_inicio, hora_fin";
+
+            const resultado = await pool.query(
+                sql,
+                [nuevoEstado, id, cita.estado]
+            );
+
+            if (resultado.rowCount === 0) {
+
+                return respuesta.status(409).json({
+                    mensaje:
+                        "La cita cambió de estado mientras la " +
+                        "modificabas. Actualiza la lista."
+                });
+
+            }
+
+            respuesta.json(resultado.rows[0]);
+
+        } catch (error) {
+
+            // 23505: el índice "una_consulta_a_la_vez" lo rechazó
+            if (error.code === "23505") {
+
+                return respuesta.status(409).json({
+                    mensaje:
+                        "Ya tienes un paciente en consulta. " +
+                        "Complétala antes de iniciar otra."
+                });
+
+            }
+
+            console.error(error);
+
+            respuesta.status(500).json({
+                mensaje: "Error al cambiar el estado de la cita"
             });
 
         }

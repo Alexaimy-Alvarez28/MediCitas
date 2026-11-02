@@ -1,8 +1,10 @@
 -- ========================================
 -- MEDICITAS: ESTRUCTURA DE LA BASE DE DATOS
 -- ========================================
--- Se puede ejecutar varias veces sin error
--- (IF NOT EXISTS evita duplicar tablas).
+-- Para una instalación NUEVA basta con ejecutar este archivo.
+-- (Las migraciones de db/migrations sirven para bases que ya
+-- existían antes de cada cambio.)
+-- Se puede ejecutar varias veces sin error.
 -- ========================================
 
 CREATE TABLE IF NOT EXISTS usuarios (
@@ -47,6 +49,9 @@ CREATE TABLE IF NOT EXISTS citas (
     origen VARCHAR(10) NOT NULL DEFAULT 'app'
         CHECK (origen IN ('app', 'manual')),
     motivo TEXT,
+    hora_llegada TIMESTAMPTZ,
+    hora_inicio TIMESTAMPTZ,
+    hora_fin TIMESTAMPTZ,
     creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -55,3 +60,8 @@ CREATE TABLE IF NOT EXISTS citas (
 CREATE UNIQUE INDEX IF NOT EXISTS citas_sin_doble_reserva
     ON citas (doctor_id, fecha, hora)
     WHERE estado <> 'Cancelada';
+
+-- Un doctor solo puede tener UNA cita "En consulta" a la vez
+CREATE UNIQUE INDEX IF NOT EXISTS una_consulta_a_la_vez
+    ON citas (doctor_id)
+    WHERE estado = 'En consulta';

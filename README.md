@@ -1,43 +1,48 @@
-# MediCitas
+# MediCitas - Backend
 
-Sistema web de agendamiento de citas médicas que conecta pacientes y doctores en una sola plataforma, con roles y paneles independientes para cada tipo de usuario.
-
-## Descripción
-
-MediCitas permite a los pacientes registrarse, agendar citas por área médica, dar seguimiento a su historial y gestionar su información médica y de contacto de emergencia. Los doctores, por su parte, pueden confirmar o cancelar las citas que reciben, llevar el control de sus pacientes y mantener actualizado su perfil profesional. Todo el flujo —desde el registro hasta la confirmación de una cita— se refleja en tiempo real mediante un sistema de notificaciones para ambos roles.
-
-## Características principales
-
-- **Autenticación por rol**: registro e inicio de sesión diferenciado para pacientes y doctores.
-- **Panel del paciente**: agendar citas filtradas por área médica y disponibilidad de doctores, ver próxima cita activa, historial completo, y marcar citas como completadas.
-- **Panel del doctor**: cola de citas pendientes por confirmar, citas confirmadas en espera de atención, historial de pacientes y estadísticas generales (total de pacientes, citas pendientes, citas completadas).
-- **Notificaciones**: alertas automáticas al paciente cuando el doctor confirma o cancela una cita, y al doctor cuando el paciente cancela una cita ya confirmada.
-- **Perfil extendido**: datos personales, información médica (alergias, tipo de sangre, dirección) y contacto de emergencia para pacientes; especialidad y estadísticas para doctores.
-- **Interfaz responsive** construida con HTML, CSS y JavaScript puro, sin frameworks ni dependencias externas.
+API REST para el sistema de citas médicas MediCitas: un sistema privado
+que se instala en clínicas, con cuenta de doctor (compartida con su
+recepción), pacientes con app y cola de espera.
 
 ## Tecnologías
+Node.js · Express · PostgreSQL · JWT · bcryptjs
 
-HTML5 · CSS3 · JavaScript (Vanilla) · `localStorage` como capa de persistencia
+## Requisitos
+- Node.js (LTS)
+- PostgreSQL 18
 
-## Estructura del proyecto
+## Instalación
+1. `npm install`
+2. Crear una base de datos llamada `medicitas` y ejecutar `db/schema.sql`
+   (en una base que ya existía antes de un cambio, ejecutar en orden los
+   archivos de `db/migrations/`)
+3. Copiar `.env.example` a `.env` y completar los valores
+4. Crear el primer administrador:
+   `node src/scripts/crear-admin.js correo contrasena`
+5. `npm run dev`
 
-```
-MediCitas/
-├── index.html
-├── login.html
-├── registro.html
-├── dashboard-paciente.html
-├── dashboard-doctor.html
-├── estilos.css
-└── js/
-    ├── datos.js
-    ├── dashboard-paciente.js
-    └── dashboard-doctor.js
-```
+## Endpoints
+| Método | Ruta | Acceso |
+|---|---|---|
+| GET | /api/salud | Público |
+| POST | /api/auth/registro | Público (pacientes) |
+| POST | /api/auth/login | Público |
+| GET | /api/auth/yo | Usuario autenticado |
+| GET | /api/doctores | Usuario autenticado |
+| GET | /api/doctores/:id | Usuario autenticado |
+| POST | /api/doctores | Administrador |
+| POST | /api/pacientes | Doctor / recepción |
+| GET | /api/pacientes?buscar= | Doctor / recepción |
+| POST | /api/citas | Paciente o doctor |
+| GET | /api/citas | Paciente o doctor (solo las suyas) |
+| PATCH | /api/citas/:id/cancelar | Dueño de la cita |
+| PATCH | /api/citas/:id/estado | Doctor / recepción |
+| GET | /api/citas/cola?fecha= | Doctor / recepción |
 
-## Cómo probarlo
+## Estados de una cita
+Pendiente → Confirmada → En sala → En consulta → Completada
+(también: Cancelada, No asistio)
 
-1. Clona el repositorio.
-2. Abre `index.html` con Live Server (o cualquier servidor local).
-3. Regístrate como Paciente o como Doctor desde la pantalla de registro.
-4. Inicia sesión para ver el panel correspondiente a tu rol.
+## Pruebas manuales
+Los archivos `.http` (extensión REST Client de VS Code) contienen
+peticiones de ejemplo.
