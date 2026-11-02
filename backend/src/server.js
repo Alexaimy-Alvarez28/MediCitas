@@ -23,9 +23,14 @@ app.use("/api/auth", require("./routes/auth"));
 
 app.use("/api/doctores", require("./routes/doctores"));
 
+app.use("/api/pacientes", require("./routes/pacientes"));
+
 app.use("/api/citas", require("./routes/citas"));
 
-app.use("/api/pacientes", require("./routes/pacientes"));
+// El cobro (PATCH /api/citas/:id/pago) vive en su propio archivo
+app.use("/api/citas", require("./routes/cobros"));
+
+app.use("/api/reportes", require("./routes/reportes"));
 
 
 // Ruta de salud (también prueba la base de datos)

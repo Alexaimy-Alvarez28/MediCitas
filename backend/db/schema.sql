@@ -52,7 +52,16 @@ CREATE TABLE IF NOT EXISTS citas (
     hora_llegada TIMESTAMPTZ,
     hora_inicio TIMESTAMPTZ,
     hora_fin TIMESTAMPTZ,
-    creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    monto NUMERIC(10, 2) CHECK (monto >= 0),
+    metodo_pago VARCHAR(20)
+        CHECK (metodo_pago IN ('efectivo', 'tarjeta', 'seguro', 'transferencia')),
+    pagado_en TIMESTAMPTZ,
+    creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT pago_consistente CHECK (
+        (monto IS NULL AND metodo_pago IS NULL AND pagado_en IS NULL)
+        OR
+        (monto IS NOT NULL AND metodo_pago IS NOT NULL AND pagado_en IS NOT NULL)
+    )
 );
 
 -- Impide dos citas del mismo doctor a la misma fecha y hora,

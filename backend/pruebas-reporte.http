@@ -1,0 +1,142 @@
+### 1. Login del admin
+# @name loginAdmin
+POST http://localhost:3000/api/auth/login
+Content-Type: application/json
+
+{
+    "correo": "admin@clinica.com",
+    "contrasena": "ClaveAdmin2026"
+}
+
+### 2. Login del doctor Carlos
+# @name loginDoctor
+POST http://localhost:3000/api/auth/login
+Content-Type: application/json
+
+{
+    "correo": "dr.carlos@clinica.com",
+    "contrasena": "Temporal2026"
+}
+
+### 3. Login del paciente Juan
+# @name loginPaciente
+POST http://localhost:3000/api/auth/login
+Content-Type: application/json
+
+{
+    "correo": "juan@correo.com",
+    "contrasena": "ClaveSegura123"
+}
+
+### 4. El admin crea a la doctora Lucía (201). Enviar UNA sola vez
+POST http://localhost:3000/api/doctores
+Content-Type: application/json
+Authorization: Bearer {{loginAdmin.response.body.token}}
+
+{
+    "nombre": "Lucía Fernández",
+    "correo": "dra.lucia@clinica.com",
+    "contrasena": "Temporal2026",
+    "especialidad": "Pediatría",
+    "telefono": "(555) 700-0002",
+    "precioConsulta": 1200
+}
+
+### >>> PARAR AQUÍ: ejecuta db/seed-demo.sql en pgAdmin (Paso 8) y vuelve <<<
+
+### 5. Login de la doctora Lucía
+# @name loginLucia
+POST http://localhost:3000/api/auth/login
+Content-Type: application/json
+
+{
+    "correo": "dra.lucia@clinica.com",
+    "contrasena": "Temporal2026"
+}
+
+### 6. Cola de Carlos: Sofía está en consulta (200)
+# @name cola
+GET http://localhost:3000/api/citas/cola?fecha=2026-11-01
+Authorization: Bearer {{loginDoctor.response.body.token}}
+
+### 7. Cobrar la cita en consulta con tarjeta, precio por defecto (200, monto 2000.00)
+PATCH http://localhost:3000/api/citas/{{cola.response.body.enConsulta.id}}/pago
+Content-Type: application/json
+Authorization: Bearer {{loginDoctor.response.body.token}}
+
+{
+    "metodoPago": "tarjeta"
+}
+
+### 8. Cobrarla otra vez (409: ya cobrada)
+PATCH http://localhost:3000/api/citas/{{cola.response.body.enConsulta.id}}/pago
+Content-Type: application/json
+Authorization: Bearer {{loginDoctor.response.body.token}}
+
+{
+    "metodoPago": "efectivo"
+}
+
+### 9. Método de pago inventado (400)
+PATCH http://localhost:3000/api/citas/{{cola.response.body.enConsulta.id}}/pago
+Content-Type: application/json
+Authorization: Bearer {{loginDoctor.response.body.token}}
+
+{
+    "metodoPago": "bitcoin"
+}
+
+### 10. Monto negativo (400)
+PATCH http://localhost:3000/api/citas/{{cola.response.body.enConsulta.id}}/pago
+Content-Type: application/json
+Authorization: Bearer {{loginDoctor.response.body.token}}
+
+{
+    "metodoPago": "efectivo",
+    "monto": -50
+}
+
+### 11. Un PACIENTE intenta cobrar (403)
+PATCH http://localhost:3000/api/citas/{{cola.response.body.enConsulta.id}}/pago
+Content-Type: application/json
+Authorization: Bearer {{loginPaciente.response.body.token}}
+
+{
+    "metodoPago": "efectivo"
+}
+
+### 12. Lucía intenta cobrar una cita de Carlos (403)
+PATCH http://localhost:3000/api/citas/{{cola.response.body.enConsulta.id}}/pago
+Content-Type: application/json
+Authorization: Bearer {{loginLucia.response.body.token}}
+
+{
+    "metodoPago": "efectivo"
+}
+
+### 13. REPORTE de Carlos (200): ver resultados esperados en la lección
+GET http://localhost:3000/api/reportes/diario?fecha=2026-11-01
+Authorization: Bearer {{loginDoctor.response.body.token}}
+
+### 14. REPORTE de Lucía (200): solo sus 3 citas
+GET http://localhost:3000/api/reportes/diario?fecha=2026-11-01
+Authorization: Bearer {{loginLucia.response.body.token}}
+
+### 15. REPORTE de TODA LA CLÍNICA con el admin (200)
+GET http://localhost:3000/api/reportes/diario?fecha=2026-11-01
+Authorization: Bearer {{loginAdmin.response.body.token}}
+
+### 16. Un día sin citas: todo en cero (200)
+GET http://localhost:3000/api/reportes/diario?fecha=2026-12-25
+Authorization: Bearer {{loginDoctor.response.body.token}}
+
+### 17. Fecha inválida (400)
+GET http://localhost:3000/api/reportes/diario?fecha=2026-13-40
+Authorization: Bearer {{loginDoctor.response.body.token}}
+
+### 18. Un PACIENTE pide el reporte (403)
+GET http://localhost:3000/api/reportes/diario?fecha=2026-11-01
+Authorization: Bearer {{loginPaciente.response.body.token}}
+
+### 19. Sin token (401)
+GET http://localhost:3000/api/reportes/diario?fecha=2026-11-01
