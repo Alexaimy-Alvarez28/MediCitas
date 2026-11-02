@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reporte diario | MediCitas</title>
+
+<!-- Librería de gráficas -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.js"></script>
+
+<style>
+
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+        color: #1e293b;
+        background: #f1f5f9;
+        line-height: 1.5;
+    }
+
+    .oculto {
+        display: none !important;
+    }
+
+    /* ========================================
+       LOGIN
+    ======================================== */
+
+    .login-contenedor {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+    }
+
+    .login-tarjeta {
+        background: #ffffff;
+        width: 100%;
+        max-width: 400px;
+        border-radius: 14px;
+        padding: 32px;
+        box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+    }
+
+    .login-tarjeta h1 {
+        font-size: 22px;
+        text-align: center;
+        color: #0f172a;
+        margin-bottom: 4px;
+    }
+
+    .login-tarjeta .subtitulo {
+        text-align: center;
+        color: #64748b;
+        font-size: 14px;
+        margin-bottom: 22px;
+    }
+
+    .campo {
+        margin-bottom: 16px;
+    }
+
+    .campo label {
+        display: block;
+        font-size: 13px;
+        font-weight: 600;
+        color: #334155;
+        margin-bottom: 6px;
+    }
+
+    .campo input {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        font-size: 14px;
+    }
+
+    .campo input:focus {
+        outline: none;
+        border-color: #2563eb;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    }
+
+    .aviso-error {
+        color: #dc2626;
+        font-size: 13px;
+        min-height: 20px;
+        margin-bottom: 8px;
+    }
+
+    .btn {
+        border: none;
+        border-radius: 8px;
+        padding: 10px 18px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    .btn-primario {
+        background: #2563eb;
+        color: #ffffff;
+    }
+
+    .btn-primario:hover {
+        background: #1d4ed8;
+    }
+
+    .btn-secundario {
+        background: #ffffff;
+        color: #2563eb;
+        border: 1px solid #2563eb;
+    }
+
+    .btn-secundario:hover {
+        background: #eff6ff;
+    }
+
+    .btn-ancho {
+        width: 100%;
+        padding: 12px;
+    }
+
+    /* ========================================
+       BARRA DE HERRAMIENTAS (no se imprime)
+    ======================================== */
+
+    .barra-herramientas {
+        background: #ffffff;
+        border-bottom: 1px solid #e2e8f0;
+        padding: 14px 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+    }
+
+    .barra-izquierda,
+    .barra-derecha {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .barra-herramientas label {
+        font-size: 13px;
+        font-weight: 600;
+        color: #334155;
+    }
+
+    .barra-herramientas input[type="date"] {
+        padding: 8px 10px;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        font-size: 14px;
+    }
+
+    .texto-usuario {
+        font-size: 13px;
+        color: #64748b;
+    }
+
+    .aviso-reporte {
+        max-width: 900px;
+        margin: 16px auto 0;
+        padding: 0 24px;
+        color: #dc2626;
+        font-size: 14px;
+        min-height: 20px;
+    }
+
+    /* ========================================
+       HOJA DEL REPORTE
+    ======================================== */
+
+    .hoja {
+        max-width: 900px;
+        margin: 16px auto 40px;
+        background: #ffffff;
+        border-radius: 12px;
+        padding: 32px;
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+    }
+
+    .encabezado {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 16px;
+        padding-bottom: 18px;
+        margin-bottom: 22px;
+        border-bottom: 3px solid #2563eb;
+    }
+
+    .marca {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 20px;
+        font-weight: 700;
+        color: #0f172a;
+    }
+
+    .marca-icono {
+        width: 36px;
+        height: 36px;
+        background: #2563eb;
+        color: #ffffff;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+    }
+
+    .encabezado-derecha {
+        text-align: right;
+    }
+
+    .encabezado-derecha h1 {
+        font-size: 18px;
+        color: #0f172a;
+    }
+
+    .encabezado-derecha p {
+        font-size: 13px;
+        color: #64748b;
+    }
+
+    .titulo-seccion {
+        font-size: 14px;
+        font-weight: 700;
+        color: #0f172a;
+        margin-bottom: 12px;
+    }
+
+    /* ========================================
+       TARJETAS DE RESUMEN
+    ======================================== */
+
+    .kpis {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+        margin-bottom: 18px;
+    }
+
+    .kpi {
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 14px 16px;
+    }
+
+    .kpi-etiqueta {
+        font-size: 12px;
+        color: #64748b;
+    }
+
+    .kpi-valor {
+        font-size: 24px;
+        font-weight: 700;
+        color: #2563eb;
+    }
+
+    .kpi-valor.verde {
+        color: #16a34a;
+    }
+
+    .kpi-valor.naranja {
+        color: #d97706;
+    }
+
+    .detalle {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px 14px;
+        background: #f8fafc;
+        border-radius: 10px;
+        padding: 14px 16px;
+        margin-bottom: 26px;
+        font-size: 13px;
+    }
+
+    .detalle span {
+        color: #64748b;
+    }
+
+    .detalle strong {
+        color: #0f172a;
+    }
+
+    /* ========================================
+       GRÁFICAS Y TABLAS
+    ======================================== */
+
+    .rejilla-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+        margin-bottom: 18px;
+    }
+
+    .caja {
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 16px;
+        margin-bottom: 18px;
+    }
+
+    .rejilla-2 .caja {
+        margin-bottom: 0;
+    }
+
+    .grafica {
+        position: relative;
+        height: 240px;
+    }
+
+    .mensaje-vacio {
+        text-align: center;
+        color: #94a3b8;
+        padding: 90px 0;
+        font-size: 14px;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+    }
+
+    th {
+        text-align: left;
+        color: #64748b;
+        font-weight: 600;
+        padding: 8px 6px;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    td {
+        padding: 8px 6px;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    th:not(:first-child),
+    td:not(:first-child) {
+        text-align: right;
+    }
+
+    td.vacio {
+        text-align: center;
+        color: #94a3b8;
+    }
+
+    .pie {
+        margin-top: 22px;
+        padding-top: 14px;
+        border-top: 1px solid #e2e8f0;
+        font-size: 12px;
+        color: #94a3b8;
+        text-align: center;
+    }
+
+    @media (max-width: 720px) {
+
+        .kpis,
+        .detalle,
+        .rejilla-2 {
+            grid-template-columns: 1fr;
+        }
+
+        .hoja {
+            padding: 20px;
+        }
+
+    }
+
+    /* ========================================
+       IMPRESIÓN
+    ======================================== */
+
+    @media print {
+
+        @page {
+            size: A4;
+            margin: 12mm;
+        }
+
+        body {
+            background: #ffffff;
+        }
+
+        .no-imprimir {
+            display: none !important;
+        }
+
+        .hoja {
+            max-width: none;
+            margin: 0;
+            padding: 0;
+            box-shadow: none;
+            border-radius: 0;
+        }
+
+        .kpis,
+        .detalle,
+        .rejilla-2 {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        .rejilla-2 {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .kpi,
+        .caja,
+        .detalle,
+        table {
+            break-inside: avoid;
+        }
+
+        * {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+    }
+
+</style>
+</head>
+<body>
+
+    <!-- ========================================
+    VISTA: LOGIN
+    ======================================== -->
+
+    <div id="vistaLogin" class="login-contenedor">
+
+        <div class="login-tarjeta">
+
+            <h1>♥ MediCitas</h1>
+
+            <p class="subtitulo">Reporte diario · Acceso del personal</p>
+
+            <form id="formLogin">
+
+                <div class="campo">
+
+                    <label for="correoLogin">Correo</label>
+
+                    <input type="email" id="correoLogin" placeholder="tu@email.com">
+
+                </div>
+
+                <div class="campo">
+
+                    <label for="contrasenaLogin">Contraseña</label>
+
+                    <input type="password" id="contrasenaLogin" placeholder="••••••••">
+
+                </div>
+
+                <p id="avisoLogin" class="aviso-error"></p>
+
+                <button type="submit" class="btn btn-primario btn-ancho">
+                    Entrar
+                </button>
+
+            </form>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================
+    VISTA: REPORTE
+    ======================================== -->
+
+    <div id="vistaReporte" class="oculto">
+
+        <div class="barra-herramientas no-imprimir">
+
+            <div class="barra-izquierda">
+
+                <label for="campoFecha">Fecha del reporte</label>
+
+                <input type="date" id="campoFecha">
+
+            </div>
+
+            <div class="barra-derecha">
+
+                <span id="textoUsuario" class="texto-usuario"></span>
+
+                <button id="btnImprimir" class="btn btn-primario">
+                    Imprimir
+                </button>
+
+                <button id="btnSalir" class="btn btn-secundario">
+                    Cerrar sesión
+                </button>
+
+            </div>
+
+        </div>
+
+        <p id="avisoReporte" class="aviso-reporte no-imprimir"></p>
+
+        <main class="hoja">
+
+            <div class="encabezado">
+
+                <div class="marca">
+
+                    <span class="marca-icono">♥</span>
+
+                    <span>MediCitas</span>
+
+                </div>
+
+                <div class="encabezado-derecha">
+
+                    <h1>Reporte diario</h1>
+
+                    <p id="repAlcance"></p>
+
+                    <p id="repFecha"></p>
+
+                </div>
+
+            </div>
+
+
+            <!-- Resumen -->
+
+            <div class="kpis">
+
+                <div class="kpi">
+                    <p class="kpi-etiqueta">Citas del día</p>
+                    <p id="kpiTotal" class="kpi-valor">0</p>
+                </div>
+
+                <div class="kpi">
+                    <p class="kpi-etiqueta">Citas completadas</p>
+                    <p id="kpiCompletadas" class="kpi-valor verde">0</p>
+                </div>
+
+                <div class="kpi">
+                    <p class="kpi-etiqueta">Pacientes atendidos</p>
+                    <p id="kpiPacientes" class="kpi-valor">0</p>
+                </div>
+
+                <div class="kpi">
+                    <p class="kpi-etiqueta">Ingresos del día</p>
+                    <p id="kpiIngresos" class="kpi-valor verde">0</p>
+                </div>
+
+                <div class="kpi">
+                    <p class="kpi-etiqueta">Cobro promedio</p>
+                    <p id="kpiTicket" class="kpi-valor">0</p>
+                </div>
+
+                <div class="kpi">
+                    <p class="kpi-etiqueta">Espera promedio</p>
+                    <p id="kpiEspera" class="kpi-valor naranja">0</p>
+                </div>
+
+            </div>
+
+            <div class="detalle">
+
+                <div><span>Pendientes: </span><strong id="detPendientes">0</strong></div>
+
+                <div><span>Canceladas: </span><strong id="detCanceladas">0</strong></div>
+
+                <div><span>No asistieron: </span><strong id="detNoAsistio">0</strong></div>
+
+                <div><span>Agendadas por la app: </span><strong id="detApp">0</strong></div>
+
+                <div><span>Agendadas en recepción: </span><strong id="detManuales">0</strong></div>
+
+                <div><span>Duración promedio de consulta: </span><strong id="detConsulta">0</strong></div>
+
+            </div>
+
+
+            <!-- Gráficas -->
+
+            <div class="rejilla-2">
+
+                <div class="caja">
+
+                    <h2 class="titulo-seccion">Citas por estado</h2>
+
+                    <div class="grafica">
+
+                        <canvas id="grafEstado"></canvas>
+
+                        <p id="vacioEstado" class="mensaje-vacio oculto">Sin citas este día</p>
+
+                    </div>
+
+                </div>
+
+                <div class="caja">
+
+                    <h2 class="titulo-seccion">Ingresos por método de pago</h2>
+
+                    <div class="grafica">
+
+                        <canvas id="grafMetodo"></canvas>
+
+                        <p id="vacioMetodo" class="mensaje-vacio oculto">Sin cobros este día</p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="caja">
+
+                <h2 class="titulo-seccion">Citas por hora (horas pico)</h2>
+
+                <div class="grafica">
+
+                    <canvas id="grafHora"></canvas>
+
+                    <p id="vacioHora" class="mensaje-vacio oculto">Sin citas este día</p>
+
+                </div>
+
+            </div>
+
+
+            <!-- Tablas -->
+
+            <div class="rejilla-2">
+
+                <div class="caja">
+
+                    <h2 class="titulo-seccion">Detalle de ingresos</h2>
+
+                    <table>
+
+                        <thead>
+                            <tr>
+                                <th>Método</th>
+                                <th>Cobros</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+
+                        <tbody id="tablaMetodoCuerpo"></tbody>
+
+                    </table>
+
+                </div>
+
+                <div id="cajaPorDoctor" class="caja oculto">
+
+                    <h2 class="titulo-seccion">Resumen por doctor</h2>
+
+                    <table>
+
+                        <thead>
+                            <tr>
+                                <th>Doctor</th>
+                                <th>Citas</th>
+                                <th>Ingresos</th>
+                            </tr>
+                        </thead>
+
+                        <tbody id="tablaDoctorCuerpo"></tbody>
+
+                    </table>
+
+                </div>
+
+            </div>
+
+            <p id="repGenerado" class="pie"></p>
+
+        </main>
+
+    </div>
+
+    <script src="js/reporte-diario.js"></script>
+
+</body>
+</html>

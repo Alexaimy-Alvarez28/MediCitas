@@ -7,9 +7,49 @@
 require("dotenv").config();
 
 const express = require("express");
+const cors = require("cors");
 const pool = require("./db");
 
 const app = express();
+
+
+// ========================================
+// CORS: QUÉ PÁGINAS PUEDEN USAR ESTA API
+// ========================================
+// Lista de orígenes permitidos. Por defecto, Live Server.
+// Se puede cambiar con la variable CORS_ORIGINS en el .env
+// (varios orígenes separados por comas).
+// ========================================
+
+const origenesPermitidos =
+    (process.env.CORS_ORIGINS ||
+        "http://127.0.0.1:5500,http://localhost:5500")
+        .split(",")
+        .map(function(origen) {
+
+            return origen.trim();
+
+        });
+
+app.use(cors({
+
+    origin: function(origen, devolver) {
+
+        // Sin "origen" = no es un navegador (REST Client, pruebas)
+        if (!origen || origenesPermitidos.includes(origen)) {
+
+            return devolver(null, true);
+
+        }
+
+        // Origen no autorizado: no se envían permisos CORS
+        // y el navegador bloquea la respuesta
+        devolver(null, false);
+
+    }
+
+}));
+
 
 // Permite que el servidor entienda JSON en las peticiones
 app.use(express.json());
