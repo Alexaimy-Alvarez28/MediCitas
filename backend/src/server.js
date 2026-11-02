@@ -1,3 +1,9 @@
+// ========================================
+// SERVIDOR DE MEDICITAS
+// ========================================
+
+// IMPORTANTE: va primero, para que las variables del .env
+// estén disponibles antes de crear la conexión
 require("dotenv").config();
 
 const express = require("express");
@@ -5,13 +11,21 @@ const pool = require("./db");
 
 const app = express();
 
+// Permite que el servidor entienda JSON en las peticiones
 app.use(express.json());
 
 
+// ========================================
+// RUTAS
+// ========================================
 
 app.use("/api/auth", require("./routes/auth"));
 
 app.use("/api/doctores", require("./routes/doctores"));
+
+app.use("/api/citas", require("./routes/citas"));
+
+app.use("/api/pacientes", require("./routes/pacientes"));
 
 
 // Ruta de salud (también prueba la base de datos)

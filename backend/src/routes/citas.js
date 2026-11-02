@@ -1,6 +1,11 @@
+// ========================================
+// RUTAS DE CITAS
+// ========================================
+
 const express = require("express");
 const pool = require("../db");
 const { verificarToken, soloRoles } = require("../middlewares/auth");
+const { fechaValida, fechaDeHoy } = require("../utils/fechas");
 
 const router = express.Router();
 
@@ -13,37 +18,11 @@ const HORAS_VALIDAS = [
 ];
 
 
-function fechaValida(texto) {
+// ========================================
+// FUNCIONES AUXILIARES
+// ========================================
 
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(texto)) {
-
-        return false;
-
-    }
-
-    const partes = texto.split("-").map(Number);
-
-    const fecha =
-        new Date(Date.UTC(partes[0], partes[1] - 1, partes[2]));
-
-    return (
-        fecha.getUTCFullYear() === partes[0] &&
-        fecha.getUTCMonth() === partes[1] - 1 &&
-        fecha.getUTCDate() === partes[2]
-    );
-
-}
-
-
-
-function fechaDeHoy() {
-
-    return new Date().toLocaleDateString("en-CA");
-
-}
-
-
-
+// Del id de usuario (token) obtenemos su id de paciente
 async function obtenerPacienteId(usuarioId) {
 
     const resultado = await pool.query(
@@ -56,7 +35,7 @@ async function obtenerPacienteId(usuarioId) {
 }
 
 
-
+// Del id de usuario (token) obtenemos su id de doctor
 async function obtenerDoctorId(usuarioId) {
 
     const resultado = await pool.query(
@@ -68,6 +47,14 @@ async function obtenerDoctorId(usuarioId) {
 
 }
 
+
+// ========================================
+// POST /api/citas
+// Crea una cita
+// ========================================
+// - Paciente: agenda para sí mismo (origen "app")
+// - Doctor/secretaria: agenda para un paciente (origen "manual")
+// ========================================
 
 router.post(
     "/",
@@ -82,7 +69,7 @@ router.post(
         const motivo = String(peticion.body.motivo || "").trim();
 
 
-
+        // ---------- Reglas de negocio ----------
 
         if (!fechaValida(fecha)) {
 
@@ -92,7 +79,7 @@ router.post(
 
         }
 
-    
+        // Como ambas son texto "AAAA-MM-DD", comparar con < funciona
         if (fecha < fechaDeHoy()) {
 
             return respuesta.status(400).json({
@@ -120,6 +107,7 @@ router.post(
 
             if (peticion.usuario.rol === "paciente") {
 
+                // La identidad sale del TOKEN, no del cuerpo
                 pacienteId =
                     await obtenerPacienteId(peticion.usuario.id);
 
@@ -163,7 +151,7 @@ router.post(
 
         } catch (error) {
 
-
+            // 23505: violó el índice anti doble reserva
             if (error.code === "23505") {
 
                 return respuesta.status(409).json({
@@ -193,6 +181,13 @@ router.post(
 );
 
 
+// ========================================
+// GET /api/citas
+// Lista SOLO las citas del usuario que consulta
+// ========================================
+// Doctores: se puede filtrar por día  ->  /api/citas?fecha=2026-11-10
+// ========================================
+
 router.get(
     "/",
     verificarToken,
@@ -203,6 +198,8 @@ router.get(
 
             const parametros = [];
 
+            // La estructura del SQL la armamos con texto fijo;
+            // los VALORES siempre van como parámetros ($1, $2...)
             let sql =
                 "SELECT c.id, c.fecha, " +
                 "to_char(c.hora, 'HH24:MI') AS hora, " +
@@ -250,6 +247,7 @@ router.get(
                 parametros.push(doctorId);
 
 
+                // Filtro opcional por día
                 const fecha = peticion.query.fecha;
 
                 if (fecha !== undefined) {
@@ -290,6 +288,12 @@ router.get(
     }
 );
 
+
+// ========================================
+// PATCH /api/citas/:id/cancelar
+// Solo el paciente o el doctor DUEÑOS de la cita
+// ========================================
+
 router.patch(
     "/:id/cancelar",
     verificarToken,
@@ -326,6 +330,8 @@ router.patch(
             }
 
 
+            // ---------- ¿Es suya esta cita? ----------
+
             let esDueno = false;
 
             if (peticion.usuario.rol === "paciente") {
@@ -352,6 +358,8 @@ router.patch(
 
             }
 
+
+            // ---------- ¿Se puede cancelar en su estado actual? ----------
 
             if (
                 cita.estado !== "Pendiente" &&

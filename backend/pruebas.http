@@ -208,3 +208,86 @@ Authorization: Bearer {{loginDoctor.response.body.token}}
 
 ### Sin token (401)
 GET http://localhost:3000/api/citas
+
+### Recepción registra un paciente sin app (201)
+# @name crearPaciente
+POST http://localhost:3000/api/pacientes
+Content-Type: application/json
+Authorization: Bearer {{loginDoctor.response.body.token}}
+
+{
+    "nombre": "Pedro Santos",
+    "telefono": "(555) 222-3344",
+    "documento": "DOC-0001",
+    "fechaNacimiento": "1958-03-14"
+}
+
+### Mismo documento (409)
+POST http://localhost:3000/api/pacientes
+Content-Type: application/json
+Authorization: Bearer {{loginDoctor.response.body.token}}
+
+{
+    "nombre": "Otro Pedro",
+    "documento": "DOC-0001"
+}
+
+### Sin nombre (400)
+POST http://localhost:3000/api/pacientes
+Content-Type: application/json
+Authorization: Bearer {{loginDoctor.response.body.token}}
+
+{
+    "telefono": "(555) 000-0000"
+}
+
+### Fecha de nacimiento en el futuro (400)
+POST http://localhost:3000/api/pacientes
+Content-Type: application/json
+Authorization: Bearer {{loginDoctor.response.body.token}}
+
+{
+    "nombre": "Bebé Del Futuro",
+    "fechaNacimiento": "2030-01-01"
+}
+
+### Un PACIENTE intenta registrar pacientes (403)
+POST http://localhost:3000/api/pacientes
+Content-Type: application/json
+Authorization: Bearer {{loginPaciente.response.body.token}}
+
+{
+    "nombre": "Intruso"
+}
+
+### Buscar por nombre (200, debe salir Pedro)
+GET http://localhost:3000/api/pacientes?buscar=ped
+Authorization: Bearer {{loginDoctor.response.body.token}}
+
+### Buscar por teléfono (200)
+GET http://localhost:3000/api/pacientes?buscar=222-33
+Authorization: Bearer {{loginDoctor.response.body.token}}
+
+### Búsqueda demasiado corta (400)
+GET http://localhost:3000/api/pacientes?buscar=p
+Authorization: Bearer {{loginDoctor.response.body.token}}
+
+### Un paciente no puede buscar pacientes (403)
+GET http://localhost:3000/api/pacientes?buscar=ped
+Authorization: Bearer {{loginPaciente.response.body.token}}
+
+### La recepción agenda a Pedro (201, origen manual)
+POST http://localhost:3000/api/citas
+Content-Type: application/json
+Authorization: Bearer {{loginDoctor.response.body.token}}
+
+{
+    "pacienteId": {{crearPaciente.response.body.id}},
+    "fecha": "2026-11-10",
+    "hora": "11:00",
+    "motivo": "Paciente sin app, agendado en recepción"
+}
+
+### El doctor ve el día (debe aparecer Pedro Santos)
+GET http://localhost:3000/api/citas?fecha=2026-11-10
+Authorization: Bearer {{loginDoctor.response.body.token}}
