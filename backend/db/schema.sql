@@ -32,8 +32,12 @@ CREATE TABLE IF NOT EXISTS pacientes (
     telefono VARCHAR(30),
     documento VARCHAR(30) UNIQUE,
     fecha_nacimiento DATE,
+    direccion TEXT,
     alergias TEXT,
     tipo_sangre VARCHAR(20),
+    contacto_emergencia_nombre VARCHAR(120),
+    contacto_emergencia_parentesco VARCHAR(30),
+    contacto_emergencia_telefono VARCHAR(30),
     creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

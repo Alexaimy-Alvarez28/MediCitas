@@ -1,0 +1,167 @@
+### 1. Login del paciente Juan
+# @name loginPaciente
+POST http://localhost:3000/api/auth/login
+Content-Type: application/json
+
+{
+    "correo": "juan@correo.com",
+    "contrasena": "ClaveSegura123"
+}
+
+### 2. Login del doctor Carlos
+# @name loginDoctor
+POST http://localhost:3000/api/auth/login
+Content-Type: application/json
+
+{
+    "correo": "dr.carlos@clinica.com",
+    "contrasena": "Temporal2026"
+}
+
+### 3. Login del admin
+# @name loginAdmin
+POST http://localhost:3000/api/auth/login
+Content-Type: application/json
+
+{
+    "correo": "admin@clinica.com",
+    "contrasena": "ClaveAdmin2026"
+}
+
+### 4. Ver mi perfil de paciente (200)
+GET http://localhost:3000/api/pacientes/yo
+Authorization: Bearer {{loginPaciente.response.body.token}}
+
+### 5. Guardar mi perfil completo (200)
+PUT http://localhost:3000/api/pacientes/yo
+Content-Type: application/json
+Authorization: Bearer {{loginPaciente.response.body.token}}
+
+{
+    "nombre": "Juan Rodríguez",
+    "telefono": "(555) 123-4567",
+    "direccion": "Calle Principal 12, Sector Centro",
+    "alergias": "Penicilina",
+    "tipoSangre": "O+",
+    "fechaNacimiento": "1990-05-20",
+    "contactoEmergencia": {
+        "nombre": "Ana Rodríguez",
+        "parentesco": "Madre",
+        "telefono": "(555) 888-7766"
+    }
+}
+
+### 6. Ver mi perfil otra vez: debe traer lo guardado (200)
+GET http://localhost:3000/api/pacientes/yo
+Authorization: Bearer {{loginPaciente.response.body.token}}
+
+### 7. Tipo de sangre inválido (400)
+PUT http://localhost:3000/api/pacientes/yo
+Content-Type: application/json
+Authorization: Bearer {{loginPaciente.response.body.token}}
+
+{
+    "nombre": "Juan Rodríguez",
+    "telefono": "(555) 123-4567",
+    "tipoSangre": "Z+"
+}
+
+### 8. Teléfono de emergencia igual al personal, escrito distinto (400)
+PUT http://localhost:3000/api/pacientes/yo
+Content-Type: application/json
+Authorization: Bearer {{loginPaciente.response.body.token}}
+
+{
+    "nombre": "Juan Rodríguez",
+    "telefono": "(555) 123-4567",
+    "contactoEmergencia": {
+        "nombre": "Ana",
+        "parentesco": "Madre",
+        "telefono": "555-123-4567"
+    }
+}
+
+### 9. Sin nombre (400)
+PUT http://localhost:3000/api/pacientes/yo
+Content-Type: application/json
+Authorization: Bearer {{loginPaciente.response.body.token}}
+
+{
+    "telefono": "(555) 123-4567"
+}
+
+### 10. Fecha de nacimiento en el futuro (400)
+PUT http://localhost:3000/api/pacientes/yo
+Content-Type: application/json
+Authorization: Bearer {{loginPaciente.response.body.token}}
+
+{
+    "nombre": "Juan Rodríguez",
+    "fechaNacimiento": "2035-01-01"
+}
+
+### 11. Un DOCTOR intenta ver un perfil de paciente (403)
+GET http://localhost:3000/api/pacientes/yo
+Authorization: Bearer {{loginDoctor.response.body.token}}
+
+### 12. Ver mi perfil de doctor (200, trae mi id de doctor)
+# @name perfilDoctor
+GET http://localhost:3000/api/doctores/yo
+Authorization: Bearer {{loginDoctor.response.body.token}}
+
+### 13. Actualizar mi perfil de doctor (200)
+PUT http://localhost:3000/api/doctores/yo
+Content-Type: application/json
+Authorization: Bearer {{loginDoctor.response.body.token}}
+
+{
+    "nombre": "Carlos Martínez",
+    "especialidad": "Cardiología",
+    "telefono": "(555) 987-0000"
+}
+
+### 14. Especialidad inválida (400)
+PUT http://localhost:3000/api/doctores/yo
+Content-Type: application/json
+Authorization: Bearer {{loginDoctor.response.body.token}}
+
+{
+    "nombre": "Carlos Martínez",
+    "especialidad": "Astrología",
+    "telefono": "(555) 987-0000"
+}
+
+### 15. Un PACIENTE intenta ver un perfil de doctor (403)
+GET http://localhost:3000/api/doctores/yo
+Authorization: Bearer {{loginPaciente.response.body.token}}
+
+### 16. Horas del doctor el 2026-11-12 (200): 09:00 y 10:00 ocupadas
+GET http://localhost:3000/api/doctores/{{perfilDoctor.response.body.id}}/disponibilidad?fecha=2026-11-12
+Authorization: Bearer {{loginPaciente.response.body.token}}
+
+### 17. Un día pasado: todas en false (200)
+GET http://localhost:3000/api/doctores/{{perfilDoctor.response.body.id}}/disponibilidad?fecha=2026-11-01
+Authorization: Bearer {{loginPaciente.response.body.token}}
+
+### 18. Fecha inválida (400)
+GET http://localhost:3000/api/doctores/{{perfilDoctor.response.body.id}}/disponibilidad?fecha=2026-02-31
+Authorization: Bearer {{loginPaciente.response.body.token}}
+
+### 19. Doctor que no existe (404)
+GET http://localhost:3000/api/doctores/99999/disponibilidad?fecha=2026-11-12
+Authorization: Bearer {{loginPaciente.response.body.token}}
+
+### 20. Sin token (401)
+GET http://localhost:3000/api/doctores/1/disponibilidad?fecha=2026-11-12
+
+### 21. El admin crea un doctor con especialidad inválida (400)
+POST http://localhost:3000/api/doctores
+Content-Type: application/json
+Authorization: Bearer {{loginAdmin.response.body.token}}
+
+{
+    "nombre": "Doctor Prueba",
+    "correo": "prueba@clinica.com",
+    "contrasena": "Temporal2026",
+    "especialidad": "Astrología"
+}
