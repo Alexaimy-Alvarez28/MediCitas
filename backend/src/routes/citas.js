@@ -6,16 +6,15 @@ const express = require("express");
 const pool = require("../db");
 const { verificarToken, soloRoles } = require("../middlewares/auth");
 const { fechaValida, fechaDeHoy } = require("../utils/fechas");
+const { HORAS_VALIDAS } = require("../utils/horarios");
+const {
+    notificarCitaConfirmada,
+    notificarCitaCanceladaPorDoctor,
+    notificarNuevaCita,
+    notificarCitaCanceladaPorPaciente
+} = require("../utils/notificaciones");
 
 const router = express.Router();
-
-
-// Horas en las que se puede agendar (por ahora iguales para
-// todos los doctores; luego vendrán de la tabla de horarios)
-const HORAS_VALIDAS = [
-    "08:00", "09:00", "10:00", "11:00",
-    "13:00", "14:00", "15:00", "16:00"
-];
 
 
 // ========================================
@@ -137,6 +136,14 @@ router.post(
 
         }
 
+        if (motivo.length > 500) {
+
+            return respuesta.status(400).json({
+                mensaje: "El motivo es demasiado largo (máximo 500 caracteres)"
+            });
+
+        }
+
 
         try {
 
@@ -186,7 +193,16 @@ router.post(
                 [pacienteId, doctorId, fecha, hora, origen, motivo || null]
             );
 
-            respuesta.status(201).json(resultado.rows[0]);
+            const cita = resultado.rows[0];
+
+            // Si la agendó el paciente, el doctor debe enterarse
+            if (origen === "app") {
+
+                await notificarNuevaCita(cita.id);
+
+            }
+
+            respuesta.status(201).json(cita);
 
         } catch (error) {
 
@@ -554,6 +570,18 @@ router.patch(
 
             }
 
+
+            // Avisos al paciente (si tiene cuenta en la app)
+            if (nuevoEstado === "Confirmada") {
+
+                await notificarCitaConfirmada(id);
+
+            } else if (nuevoEstado === "Cancelada") {
+
+                await notificarCitaCanceladaPorDoctor(id);
+
+            }
+
             respuesta.json(resultado.rows[0]);
 
         } catch (error) {
@@ -669,9 +697,31 @@ router.patch(
 
             const resultado = await pool.query(
                 "UPDATE citas SET estado = 'Cancelada' " +
-                "WHERE id = $1 RETURNING id, estado",
-                [id]
+                "WHERE id = $1 AND estado = $2 RETURNING id, estado",
+                [id, cita.estado]
             );
+
+            if (resultado.rowCount === 0) {
+
+                return respuesta.status(409).json({
+                    mensaje:
+                        "La cita cambió de estado mientras la " +
+                        "modificabas. Actualiza la lista."
+                });
+
+            }
+
+
+            // Avisamos a la otra parte
+            if (peticion.usuario.rol === "paciente") {
+
+                await notificarCitaCanceladaPorPaciente(id);
+
+            } else {
+
+                await notificarCitaCanceladaPorDoctor(id);
+
+            }
 
             respuesta.json(resultado.rows[0]);
 

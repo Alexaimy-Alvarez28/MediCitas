@@ -72,6 +72,8 @@ app.use("/api/citas", require("./routes/cobros"));
 
 app.use("/api/reportes", require("./routes/reportes"));
 
+app.use("/api/notificaciones", require("./routes/notificaciones"));
+
 
 // Ruta de salud (también prueba la base de datos)
 app.get("/api/salud", async function(peticion, respuesta) {

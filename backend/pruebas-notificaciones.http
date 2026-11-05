@@ -1,0 +1,103 @@
+### 1. Login del paciente Juan
+# @name loginPaciente
+POST http://localhost:3000/api/auth/login
+Content-Type: application/json
+
+{
+    "correo": "juan@correo.com",
+    "contrasena": "ClaveSegura123"
+}
+
+### 2. Login del doctor Carlos
+# @name loginDoctor
+POST http://localhost:3000/api/auth/login
+Content-Type: application/json
+
+{
+    "correo": "dr.carlos@clinica.com",
+    "contrasena": "Temporal2026"
+}
+
+### 3. El doctor consulta su id de doctor
+# @name perfilDoctor
+GET http://localhost:3000/api/doctores/yo
+Authorization: Bearer {{loginDoctor.response.body.token}}
+
+### 4. Juan agenda la cita 1 a las 09:00 (201)
+# @name citaUno
+POST http://localhost:3000/api/citas
+Content-Type: application/json
+Authorization: Bearer {{loginPaciente.response.body.token}}
+
+{
+    "doctorId": {{perfilDoctor.response.body.id}},
+    "fecha": "2026-11-20",
+    "hora": "09:00",
+    "motivo": "Control"
+}
+
+### 5. Juan agenda la cita 2 a las 10:00 (201)
+# @name citaDos
+POST http://localhost:3000/api/citas
+Content-Type: application/json
+Authorization: Bearer {{loginPaciente.response.body.token}}
+
+{
+    "doctorId": {{perfilDoctor.response.body.id}},
+    "fecha": "2026-11-20",
+    "hora": "10:00",
+    "motivo": "Seguimiento"
+}
+
+### 6. El doctor ve sus notificaciones (200): noLeidas 2, "Nueva cita pendiente..."
+GET http://localhost:3000/api/notificaciones
+Authorization: Bearer {{loginDoctor.response.body.token}}
+
+### 7. El doctor las marca como leídas (200): marcadas 2
+PATCH http://localhost:3000/api/notificaciones/leer
+Authorization: Bearer {{loginDoctor.response.body.token}}
+
+### 8. El doctor vuelve a ver (200): noLeidas 0, las 2 siguen en la lista
+GET http://localhost:3000/api/notificaciones
+Authorization: Bearer {{loginDoctor.response.body.token}}
+
+### 9. El doctor CONFIRMA la cita 1 (200)
+PATCH http://localhost:3000/api/citas/{{citaUno.response.body.id}}/estado
+Content-Type: application/json
+Authorization: Bearer {{loginDoctor.response.body.token}}
+
+{
+    "estado": "Confirmada"
+}
+
+### 10. El doctor CANCELA la cita 2 (200)
+PATCH http://localhost:3000/api/citas/{{citaDos.response.body.id}}/estado
+Content-Type: application/json
+Authorization: Bearer {{loginDoctor.response.body.token}}
+
+{
+    "estado": "Cancelada"
+}
+
+### 11. Juan ve sus notificaciones (200): noLeidas 2 (confirmada y cancelada)
+GET http://localhost:3000/api/notificaciones
+Authorization: Bearer {{loginPaciente.response.body.token}}
+
+### 12. Juan cancela la cita 1, que estaba confirmada (200)
+PATCH http://localhost:3000/api/citas/{{citaUno.response.body.id}}/cancelar
+Authorization: Bearer {{loginPaciente.response.body.token}}
+
+### 13. El doctor ve (200): noLeidas 1, "El paciente Juan Rodríguez canceló..."
+GET http://localhost:3000/api/notificaciones
+Authorization: Bearer {{loginDoctor.response.body.token}}
+
+### 14. Juan marca las suyas como leídas (200): marcadas 2
+PATCH http://localhost:3000/api/notificaciones/leer
+Authorization: Bearer {{loginPaciente.response.body.token}}
+
+### 15. Juan ve las suyas (200): noLeidas 0 y SOLO sus 2 mensajes (ninguno del doctor)
+GET http://localhost:3000/api/notificaciones
+Authorization: Bearer {{loginPaciente.response.body.token}}
+
+### 16. Sin token (401)
+GET http://localhost:3000/api/notificaciones
