@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Iniciar sesión | MediCitas</title>
 <link rel="stylesheet" href="estilos.css">
-<script src="js/datos.js"></script>
+<link rel="stylesheet" href="estilos-app.css">
 </head>
 <body class="fondo-auth">
 
@@ -49,7 +49,10 @@
 
                 </div>
 
-                <button type="submit" class="btn btn-primario btn-ancho">
+                <button
+                    type="submit"
+                    id="btnEntrar"
+                    class="btn btn-primario btn-ancho">
                     Entrar
                 </button>
 
@@ -65,19 +68,36 @@
 
     </div>
 
+    <script src="js/api.js"></script>
+
     <script>
 
         // ========================================
-        // MANEJAR ENVÍO DEL FORMULARIO DE LOGIN
+        // AVISO PENDIENTE (por ejemplo, "Tu sesión expiró")
+        // ========================================
+
+        const avisoPendiente =
+            sessionStorage.getItem("medicitas_aviso");
+
+        if (avisoPendiente) {
+
+            mostrarMensaje(avisoPendiente, "info");
+
+            sessionStorage.removeItem("medicitas_aviso");
+
+        }
+
+
+        // ========================================
+        // ENVÍO DEL FORMULARIO DE LOGIN
         // ========================================
 
         const formLogin =
             document.getElementById("formLogin");
 
-        formLogin.addEventListener("submit", function(evento) {
+        formLogin.addEventListener("submit", async function(evento) {
 
             evento.preventDefault();
-
 
             const correo =
                 document.getElementById("correoLogin").value.trim();
@@ -85,55 +105,43 @@
             const contrasena =
                 document.getElementById("contrasenaLogin").value;
 
-
             if (correo === "" || contrasena === "") {
 
-                alert("Por favor, completa todos los campos.");
+                mostrarMensaje(
+                    "Por favor, completa todos los campos.",
+                    "error"
+                );
 
                 return;
 
             }
 
+            const boton = document.getElementById("btnEntrar");
 
-            // Buscar usuario que coincida con correo y contraseña
-            const usuarios =
-                obtenerUsuarios();
+            boton.disabled = true;
 
-            const usuario =
-                usuarios.find(function(usuario) {
+            try {
 
-                    return (
-                        usuario.correo.toLowerCase() === correo.toLowerCase() &&
-                        usuario.contrasena === contrasena
-                    );
+                const datos = await llamarApi("/auth/login", {
+
+                    metodo: "POST",
+
+                    cuerpo: { correo: correo, contrasena: contrasena }
 
                 });
 
+                guardarSesion(datos.token, datos.usuario);
 
-            if (!usuario) {
+                window.location.href =
+                    PANEL_POR_ROL[datos.usuario.rol] || "login.html";
 
-                alert("Correo o contraseña incorrectos.");
+            } catch (error) {
 
-                return;
+                mostrarMensaje(error.message, "error");
 
-            }
-
-
-            // Guardar la sesión activa
-            guardarSesion(usuario.id);
-
-
-            // Redirigir según el tipo de usuario
-            if (usuario.tipo === "doctor") {
-
-                window.location.href = "dashboard-doctor.html";
-
-                return;
+                boton.disabled = false;
 
             }
-
-
-            window.location.href = "dashboard-paciente.html";
 
         });
 

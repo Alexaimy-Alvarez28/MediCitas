@@ -1,0 +1,23 @@
+### 1. Login del doctor Carlos
+# @name loginDoctor
+POST http://localhost:3000/api/auth/login
+Content-Type: application/json
+
+{
+    "correo": "dr.carlos@clinica.com",
+    "contrasena": "Temporal2026"
+}
+
+### 2. Cola del día 2026-11-25: mira "pendientesDeConfirmar"
+# @name cola
+GET http://localhost:3000/api/citas/cola?fecha=2026-11-25
+Authorization: Bearer {{loginDoctor.response.body.token}}
+
+### 3. Confirmar la primera pendiente de ese día (200)
+PATCH http://localhost:3000/api/citas/{{cola.response.body.$.pendientesDeConfirmar[0].id}}/estado
+Content-Type: application/json
+Authorization: Bearer {{loginDoctor.response.body.token}}
+
+{
+    "estado": "Confirmada"
+}

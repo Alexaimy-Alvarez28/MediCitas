@@ -1,423 +1,152 @@
 // ========================================
-// PANEL DEL PACIENTE - LÓGICA
+// PANEL DEL PACIENTE - LÓGICA (CONECTADO A LA API)
+// ========================================
+// Requiere js/api.js cargado antes que este archivo.
 // ========================================
 
 
-// Usuario actualmente conectado
-let usuarioActual = null;
+let perfil = null;
 
-// Guarda el id de la cita que se está mostrando como "próxima cita"
-let idProximaCitaActiva = null;
+let doctores = [];
+
+let citas = [];
+
+let idProximaCita = null;
+
+// Cada consulta de horas lleva un número. Si llega una respuesta
+// con un número viejo, se ignora (evita pintar horas equivocadas
+// cuando el usuario cambia la fecha rápido).
+let consultaHorasActual = 0;
+
+
+const ESTADOS_ACTIVOS = ["Pendiente", "Confirmada", "En sala", "En consulta"];
+
+const ESTADOS_CANCELABLES = ["Pendiente", "Confirmada"];
+
+const CLASE_ESTADO = {
+
+    "Pendiente": "etiqueta-pendiente",
+
+    "Confirmada": "etiqueta-confirmada",
+
+    "En sala": "etiqueta-en-sala",
+
+    "En consulta": "etiqueta-en-consulta",
+
+    "Completada": "etiqueta-completada",
+
+    "Cancelada": "etiqueta-cancelada",
+
+    "No asistio": "etiqueta-no-asistio"
+
+};
+
+const TEXTO_ESTADO = {
+
+    "No asistio": "No asistió"
+
+};
 
 
 // ========================================
-// CONVERTIR HORA "8:00 AM" A MINUTOS DEL DÍA
-// ========================================
-// Necesario para poder ordenar correctamente,
-// ya que como texto "2:00 PM" sale antes que
-// "9:00 AM" alfabéticamente (lo cual es incorrecto).
+// AL ABRIR LA PÁGINA
 // ========================================
 
-function convertirHoraAMinutos(horaTexto) {
+document.addEventListener("DOMContentLoaded", async function() {
 
-    const partes =
-        horaTexto.split(" ");
+    const usuario = obtenerUsuarioGuardado();
 
-    const horaMinuto =
-        partes[0].split(":");
+    // Sin sesión: al login
+    if (!obtenerToken() || !usuario) {
 
-    let horas =
-        Number(horaMinuto[0]);
+        window.location.href = "login.html";
 
-    const minutos =
-        Number(horaMinuto[1]);
-
-    const periodo =
-        partes[1];
-
-
-    if (periodo === "PM" && horas !== 12) {
-
-        horas = horas + 12;
+        return;
 
     }
 
-    if (periodo === "AM" && horas === 12) {
+    // Esto es comodidad, no seguridad: la API rechaza lo que
+    // no corresponda a cada rol
+    if (usuario.rol !== "paciente") {
 
-        horas = 0;
+        window.location.href =
+            PANEL_POR_ROL[usuario.rol] || "login.html";
+
+        return;
 
     }
 
 
-    return (horas * 60) + minutos;
+    // Fecha mínima para agendar: hoy
+    document.getElementById("fechaCita").min = fechaDeHoy();
 
-}
+    // Fecha máxima de nacimiento: hoy
+    document.getElementById("perfilFechaNacimiento").max = fechaDeHoy();
 
 
-// ========================================
-// ORDENAR CITAS POR FECHA Y HORA (ASCENDENTE)
-// ========================================
+    // Eventos del formulario de agendar
+    document.getElementById("especialidadCita")
+        .addEventListener("change", poblarDoctores);
 
-function ordenarCitasPorFechaHora(citas) {
+    document.getElementById("doctorCita")
+        .addEventListener("change", cargarHoras);
 
-    const copia =
-        citas.slice();
+    document.getElementById("fechaCita")
+        .addEventListener("change", cargarHoras);
 
-    copia.sort(function(citaA, citaB) {
 
-        if (citaA.fecha !== citaB.fecha) {
+    // Cerrar el panel de notificaciones al hacer clic afuera
+    document.addEventListener("click", function(evento) {
 
-            return citaA.fecha < citaB.fecha ? -1 : 1;
+        const contenedor =
+            document.querySelector(".campana-contenedor");
+
+        if (!contenedor.contains(evento.target)) {
+
+            document
+                .getElementById("panelNotificaciones")
+                .classList.add("oculto");
 
         }
 
-
-        const minutosA =
-            convertirHoraAMinutos(citaA.hora);
-
-        const minutosB =
-            convertirHoraAMinutos(citaB.hora);
-
-        return minutosA - minutosB;
-
     });
 
-    return copia;
 
-}
+    // Las tres cargas son independientes: se hacen a la vez
+    await Promise.all([
+        cargarPerfil(),
+        cargarDoctores(),
+        cargarCitas()
+    ]);
 
+    cargarNotificaciones();
 
-// ========================================
-// VERIFICAR SESIÓN AL CARGAR LA PÁGINA
-// ========================================
-
-document.addEventListener("DOMContentLoaded", function() {
-
-    usuarioActual =
-        obtenerUsuarioSesion();
-
-
-    // Si no hay sesión activa, regresar al login
-    if (!usuarioActual) {
-
-        window.location.href = "login.html";
-
-        return;
-
-    }
-
-
-    // Si el usuario es doctor, no debe ver el panel de paciente
-    if (usuarioActual.tipo === "doctor") {
-
-        alert(
-            "El panel de doctor todavía está en construcción."
-        );
-
-        window.location.href = "login.html";
-
-        return;
-
-    }
-
-
-    // Mostrar el nombre del paciente en el saludo
-    const primerNombre =
-        usuarioActual.nombre.split(" ")[0];
-
-    document.getElementById("tituloBienvenida").textContent =
-        "Bienvenido, " + primerNombre;
-
-
-    // Llenar la sección de datos personales
-    document.getElementById("perfilNombre").value =
-        usuarioActual.nombre;
-
-    document.getElementById("perfilCorreo").value =
-        usuarioActual.correo;
-
-    document.getElementById("perfilTelefono").value =
-        usuarioActual.telefono;
-
-    document.getElementById("perfilTipo").value =
-        usuarioActual.tipo === "paciente" ? "Paciente" : "Doctor";
-
-
-    // Cargar información médica y de contacto de emergencia
-    // (si el paciente ya la había guardado antes)
-    document.getElementById("perfilAlergias").value =
-        usuarioActual.alergias || "";
-
-    document.getElementById("perfilTipoSangre").value =
-        usuarioActual.tipoSangre || "";
-
-    document.getElementById("perfilDireccion").value =
-        usuarioActual.direccion || "";
-
-    if (usuarioActual.contactoEmergencia) {
-
-        document.getElementById("perfilEmergenciaNombre").value =
-            usuarioActual.contactoEmergencia.nombre || "";
-
-        document.getElementById("perfilEmergenciaParentesco").value =
-            usuarioActual.contactoEmergencia.parentesco || "";
-
-        document.getElementById("perfilEmergenciaTelefono").value =
-            usuarioActual.contactoEmergencia.telefono || "";
-
-    }
-
-
-    // Cargar doctores disponibles en el formulario de citas
-    cargarDoctoresDisponibles();
-
-
-    // Cargar toda la información de citas
-    actualizarVistaCitas();
-
-
-    // Cargar notificaciones del paciente
-    actualizarNotificaciones();
+    // Cada 30 segundos se consulta si hay avisos nuevos
+    setInterval(cargarNotificaciones, 30000);
 
 });
 
 
 // ========================================
-// NOTIFICACIONES
+// NAVEGACIÓN ENTRE SECCIONES
 // ========================================
 
-function actualizarNotificaciones() {
+function primerNombre() {
 
-    const notificaciones =
-        obtenerNotificaciones();
-
-    const notificacionesPropias =
-        notificaciones.filter(function(notificacion) {
-
-            return notificacion.usuarioId === usuarioActual.id;
-
-        });
-
-
-    // Mostrar las más recientes primero
-    notificacionesPropias.reverse();
-
-
-    // ========================================
-    // CONTADOR (BURBUJA ROJA)
-    // ========================================
-
-    const noLeidas =
-        notificacionesPropias.filter(function(notificacion) {
-
-            return notificacion.leida === false;
-
-        });
-
-    const contador =
-        document.getElementById("contadorNotificaciones");
-
-    if (noLeidas.length === 0) {
-
-        contador.classList.add("oculto");
-
-    } else {
-
-        contador.textContent = noLeidas.length;
-
-        contador.classList.remove("oculto");
-
-    }
-
-
-    // ========================================
-    // LISTA DENTRO DEL PANEL
-    // ========================================
-
-    const lista =
-        document.getElementById("listaNotificaciones");
-
-    if (notificacionesPropias.length === 0) {
-
-        lista.innerHTML =
-            '<p class="texto-vacio">No tienes notificaciones</p>';
-
-        return;
-
-    }
-
-
-    let html = "";
-
-    notificacionesPropias.forEach(function(notificacion) {
-
-        html = html + `
-
-            <div class="notificacion-item ${notificacion.leida ? "" : "notificacion-nueva"}">
-
-                ${notificacion.mensaje}
-
-            </div>
-
-        `;
-
-    });
-
-    lista.innerHTML = html;
+    return perfil ? perfil.nombre.split(" ")[0] : "";
 
 }
 
-
-// ========================================
-// ABRIR/CERRAR EL PANEL Y MARCAR COMO LEÍDAS
-// ========================================
-
-function alternarPanelNotificaciones() {
-
-    const panel =
-        document.getElementById("panelNotificaciones");
-
-    panel.classList.toggle("oculto");
-
-
-    // Al abrir el panel, se marcan todas como leídas
-    if (!panel.classList.contains("oculto")) {
-
-        const notificaciones =
-            obtenerNotificaciones();
-
-        notificaciones.forEach(function(notificacion) {
-
-            if (notificacion.usuarioId === usuarioActual.id) {
-
-                notificacion.leida = true;
-
-            }
-
-        });
-
-        guardarNotificaciones(notificaciones);
-
-
-        actualizarNotificaciones();
-
-        // Volver a mostrar el panel (actualizarNotificaciones no lo toca,
-        // pero lo dejamos explícito por claridad)
-        document.getElementById("panelNotificaciones").classList.remove("oculto");
-
-    }
-
-}
-
-
-// ========================================
-// GUARDAR INFORMACIÓN MÉDICA Y DE EMERGENCIA
-// ========================================
-
-function guardarPerfilPaciente() {
-
-    const alergias =
-        document.getElementById("perfilAlergias").value.trim();
-
-    const tipoSangre =
-        document.getElementById("perfilTipoSangre").value;
-
-    const direccion =
-        document.getElementById("perfilDireccion").value.trim();
-
-    const emergenciaNombre =
-        document.getElementById("perfilEmergenciaNombre").value.trim();
-
-    const emergenciaParentesco =
-        document.getElementById("perfilEmergenciaParentesco").value;
-
-    const emergenciaTelefono =
-        document.getElementById("perfilEmergenciaTelefono").value.trim();
-
-
-    const avisoEmergenciaTelefono =
-        document.getElementById("avisoEmergenciaTelefono");
-
-
-    // El teléfono de emergencia no puede ser el mismo
-    // que el teléfono personal del paciente
-    if (
-        emergenciaTelefono !== "" &&
-        emergenciaTelefono === usuarioActual.telefono
-    ) {
-
-        avisoEmergenciaTelefono.classList.remove("oculto");
-
-        alert(
-            "El teléfono de emergencia no puede ser el mismo " +
-            "que tu teléfono personal."
-        );
-
-        return;
-
-    }
-
-
-    avisoEmergenciaTelefono.classList.add("oculto");
-
-
-    const usuarios =
-        obtenerUsuarios();
-
-    const posicion =
-        usuarios.findIndex(function(usuario) {
-
-            return usuario.id === usuarioActual.id;
-
-        });
-
-
-    if (posicion === -1) {
-
-        return;
-
-    }
-
-
-    usuarios[posicion].alergias = alergias;
-
-    usuarios[posicion].tipoSangre = tipoSangre;
-
-    usuarios[posicion].direccion = direccion;
-
-    usuarios[posicion].contactoEmergencia = {
-
-        nombre: emergenciaNombre,
-
-        parentesco: emergenciaParentesco,
-
-        telefono: emergenciaTelefono
-
-    };
-
-
-    guardarUsuarios(usuarios);
-
-
-    // Actualizar el usuario en memoria
-    usuarioActual = usuarios[posicion];
-
-
-    alert("Perfil actualizado correctamente.");
-
-}
 
 function mostrarSeccionPaciente(idSeccion) {
 
-    const secciones =
-        document.querySelectorAll(".seccion-dashboard");
+    document.querySelectorAll(".seccion-dashboard").forEach(
+        function(seccion) {
 
-    secciones.forEach(function(seccion) {
+            seccion.classList.add("oculto");
 
-        seccion.classList.add("oculto");
-
-    });
-
+        }
+    );
 
     const mapaSecciones = {
 
@@ -431,28 +160,17 @@ function mostrarSeccionPaciente(idSeccion) {
 
     };
 
+    const seccion = document.getElementById(mapaSecciones[idSeccion]);
 
-    const seccionAMostrar =
-        document.getElementById(mapaSecciones[idSeccion]);
+    if (seccion) {
 
-    if (seccionAMostrar) {
-
-        seccionAMostrar.classList.remove("oculto");
+        seccion.classList.remove("oculto");
 
     }
 
+    const titulos = {
 
-    // ========================================
-    // TÍTULO DEL ENCABEZADO SEGÚN LA SECCIÓN
-    // ========================================
-    // Solo en Inicio se muestra el saludo con el
-    // nombre; en las demás secciones se muestra
-    // el nombre de la sección.
-    // ========================================
-
-    const mapaTitulos = {
-
-        inicio: "Bienvenido, " + usuarioActual.nombre.split(" ")[0],
+        inicio: primerNombre() ? "Bienvenido, " + primerNombre() : "Bienvenido",
 
         citas: "Mis citas",
 
@@ -463,23 +181,9 @@ function mostrarSeccionPaciente(idSeccion) {
     };
 
     document.getElementById("tituloBienvenida").textContent =
-        mapaTitulos[idSeccion];
+        titulos[idSeccion];
 
-
-    // Si se entra a "Agendar cita", refrescar la lista de doctores
-    // (por si se registraron nuevos doctores después de cargar la página)
-    if (idSeccion === "agendar") {
-
-        cargarDoctoresDisponibles();
-
-    }
-
-
-    // Marcar el botón activo en el menú lateral
-    const botonesNav =
-        document.querySelectorAll(".nav-item");
-
-    botonesNav.forEach(function(boton) {
+    document.querySelectorAll(".nav-item").forEach(function(boton) {
 
         boton.classList.remove("activo");
 
@@ -495,259 +199,690 @@ function mostrarSeccionPaciente(idSeccion) {
 
 
 // ========================================
-// OBTENER SOLO LAS CITAS DEL PACIENTE ACTUAL
+// PERFIL
 // ========================================
 
-function obtenerCitasDelPaciente() {
+async function cargarPerfil() {
 
-    const todasLasCitas =
-        obtenerCitasMedicitas();
+    try {
 
-    return todasLasCitas.filter(function(cita) {
+        perfil = await llamarApi("/pacientes/yo");
 
-        return cita.pacienteId === usuarioActual.id;
+        llenarFormularioPerfil();
 
-    });
+        document.getElementById("tituloBienvenida").textContent =
+            "Bienvenido, " + primerNombre();
+
+    } catch (error) {
+
+        mostrarMensaje(error.message, "error");
+
+    }
 
 }
 
 
-// ========================================
-// CARGAR DOCTORES DISPONIBLES EN EL SELECT
-// ========================================
-// Solo se muestran los doctores registrados
-// con la especialidad que el paciente eligió.
-// ========================================
+function llenarFormularioPerfil() {
 
-function cargarDoctoresDisponibles() {
+    const emergencia = perfil.contactoEmergencia || {};
 
-    const especialidadElegida =
-        document.getElementById("especialidadCita").value;
+    document.getElementById("perfilNombre").value =
+        perfil.nombre || "";
 
-    const select =
-        document.getElementById("doctorCita");
+    document.getElementById("perfilCorreo").value =
+        perfil.correo || "";
 
-    const aviso =
-        document.getElementById("avisoDoctor");
+    document.getElementById("perfilTelefono").value =
+        perfil.telefono || "";
+
+    document.getElementById("perfilDocumento").value =
+        perfil.documento || "";
+
+    document.getElementById("perfilFechaNacimiento").value =
+        perfil.fechaNacimiento || "";
+
+    document.getElementById("perfilDireccion").value =
+        perfil.direccion || "";
+
+    document.getElementById("perfilAlergias").value =
+        perfil.alergias || "";
+
+    document.getElementById("perfilTipoSangre").value =
+        perfil.tipoSangre || "";
+
+    document.getElementById("perfilEmergenciaNombre").value =
+        emergencia.nombre || "";
+
+    document.getElementById("perfilEmergenciaParentesco").value =
+        emergencia.parentesco || "";
+
+    document.getElementById("perfilEmergenciaTelefono").value =
+        emergencia.telefono || "";
+
+}
 
 
-    // Limpiar opciones (dejando la primera)
-    select.innerHTML =
-        '<option value="">Selecciona un doctor</option>';
+async function guardarPerfilPaciente() {
 
+    const nombre =
+        document.getElementById("perfilNombre").value.trim();
 
-    // Si todavía no eligió área, no se muestra nada
-    if (especialidadElegida === "") {
+    if (nombre === "") {
 
-        aviso.textContent =
-            "Selecciona primero un área.";
-
-        aviso.classList.remove("oculto");
-
-        select.disabled = true;
+        mostrarMensaje("El nombre es obligatorio.", "error");
 
         return;
 
     }
 
+    const boton = document.getElementById("btnGuardarPerfil");
 
-    const usuarios =
-        obtenerUsuarios();
+    boton.disabled = true;
 
-    const doctores =
-        usuarios.filter(function(usuario) {
+    try {
 
-            return (
-                usuario.tipo === "doctor" &&
-                usuario.especialidad === especialidadElegida
+        perfil = await llamarApi("/pacientes/yo", {
+
+            metodo: "PUT",
+
+            cuerpo: {
+
+                nombre: nombre,
+
+                telefono:
+                    document.getElementById("perfilTelefono").value.trim(),
+
+                direccion:
+                    document.getElementById("perfilDireccion").value.trim(),
+
+                alergias:
+                    document.getElementById("perfilAlergias").value.trim(),
+
+                tipoSangre:
+                    document.getElementById("perfilTipoSangre").value,
+
+                fechaNacimiento:
+                    document.getElementById("perfilFechaNacimiento").value,
+
+                contactoEmergencia: {
+
+                    nombre:
+                        document
+                            .getElementById("perfilEmergenciaNombre")
+                            .value.trim(),
+
+                    parentesco:
+                        document
+                            .getElementById("perfilEmergenciaParentesco")
+                            .value,
+
+                    telefono:
+                        document
+                            .getElementById("perfilEmergenciaTelefono")
+                            .value.trim()
+
+                }
+
+            }
+
+        });
+
+        llenarFormularioPerfil();
+
+        mostrarMensaje("Perfil actualizado correctamente.", "exito");
+
+    } catch (error) {
+
+        mostrarMensaje(error.message, "error");
+
+    } finally {
+
+        boton.disabled = false;
+
+    }
+
+}
+
+
+// ========================================
+// AGENDAR UNA CITA
+// ========================================
+
+function crearOpcion(valor, texto, deshabilitada) {
+
+    const opcion = document.createElement("option");
+
+    opcion.value = valor;
+
+    opcion.textContent = texto;
+
+    if (deshabilitada) {
+
+        opcion.disabled = true;
+
+    }
+
+    return opcion;
+
+}
+
+
+async function cargarDoctores() {
+
+    try {
+
+        doctores = await llamarApi("/doctores");
+
+        poblarAreas();
+
+    } catch (error) {
+
+        mostrarMensaje(error.message, "error");
+
+    }
+
+}
+
+
+// Solo se ofrecen las áreas que tienen al menos un doctor
+function poblarAreas() {
+
+    const select = document.getElementById("especialidadCita");
+
+    select.replaceChildren(crearOpcion("", "Selecciona un área"));
+
+    const areas = [];
+
+    doctores.forEach(function(doctor) {
+
+        if (!areas.includes(doctor.especialidad)) {
+
+            areas.push(doctor.especialidad);
+
+        }
+
+    });
+
+    areas.sort();
+
+    areas.forEach(function(area) {
+
+        select.appendChild(crearOpcion(area, area));
+
+    });
+
+    document.getElementById("avisoArea").classList.toggle(
+        "oculto",
+        areas.length > 0
+    );
+
+    poblarDoctores();
+
+}
+
+
+function poblarDoctores() {
+
+    const area = document.getElementById("especialidadCita").value;
+
+    const select = document.getElementById("doctorCita");
+
+    const aviso = document.getElementById("avisoDoctor");
+
+    select.replaceChildren(crearOpcion("", "Selecciona un doctor"));
+
+    if (area === "") {
+
+        select.disabled = true;
+
+        aviso.classList.remove("oculto");
+
+        reiniciarHoras();
+
+        return;
+
+    }
+
+    doctores
+        .filter(function(doctor) {
+
+            return doctor.especialidad === area;
+
+        })
+        .forEach(function(doctor) {
+
+            select.appendChild(
+                crearOpcion(String(doctor.id), "Dr(a). " + doctor.nombre)
             );
 
         });
 
+    select.disabled = false;
 
-    if (doctores.length === 0) {
+    aviso.classList.add("oculto");
 
-        aviso.textContent =
-            "No hay doctores disponibles de esa área. " +
-            "Favor seleccionar otra especialidad.";
+    reiniciarHoras();
+
+}
+
+
+function reiniciarHoras() {
+
+    // Cualquier consulta de horas en curso queda descartada
+    consultaHorasActual = consultaHorasActual + 1;
+
+    const select = document.getElementById("horaCita");
+
+    select.replaceChildren(crearOpcion("", "Selecciona doctor y fecha"));
+
+    select.disabled = true;
+
+    document.getElementById("avisoHoras").classList.add("oculto");
+
+}
+
+
+async function cargarHoras() {
+
+    const doctorId = document.getElementById("doctorCita").value;
+
+    const fecha = document.getElementById("fechaCita").value;
+
+    const select = document.getElementById("horaCita");
+
+    const aviso = document.getElementById("avisoHoras");
+
+    if (doctorId === "" || fecha === "") {
+
+        reiniciarHoras();
+
+        return;
+
+    }
+
+    if (fecha < fechaDeHoy()) {
+
+        reiniciarHoras();
+
+        aviso.textContent = "Elige una fecha de hoy en adelante.";
 
         aviso.classList.remove("oculto");
-
-        select.disabled = true;
 
         return;
 
     }
 
 
-    aviso.classList.add("oculto");
+    consultaHorasActual = consultaHorasActual + 1;
 
-    select.disabled = false;
+    const miConsulta = consultaHorasActual;
+
+    select.disabled = true;
+
+    try {
+
+        const datos = await llamarApi(
+            "/doctores/" + doctorId +
+            "/disponibilidad?fecha=" + encodeURIComponent(fecha)
+        );
+
+        // Llegó una respuesta vieja: se descarta
+        if (miConsulta !== consultaHorasActual) {
+
+            return;
+
+        }
+
+        select.replaceChildren(crearOpcion("", "Selecciona una hora"));
+
+        let hayLibres = false;
+
+        datos.horas.forEach(function(franja) {
+
+            if (franja.disponible) {
+
+                hayLibres = true;
+
+            }
+
+            select.appendChild(
+                crearOpcion(
+                    franja.hora,
+                    formatoHora(franja.hora) +
+                        (franja.disponible ? "" : " (ocupada)"),
+                    !franja.disponible
+                )
+            );
+
+        });
+
+        select.disabled = false;
+
+        aviso.textContent =
+            "No hay horas libres ese día. Prueba con otra fecha.";
+
+        aviso.classList.toggle("oculto", hayLibres);
+
+    } catch (error) {
+
+        if (miConsulta !== consultaHorasActual) {
+
+            return;
+
+        }
+
+        reiniciarHoras();
+
+        mostrarMensaje(error.message, "error");
+
+    }
+
+}
 
 
-    doctores.forEach(function(doctor) {
+async function confirmarCita() {
 
-        const opcion =
-            document.createElement("option");
+    const doctorId = document.getElementById("doctorCita").value;
 
-        opcion.value = doctor.id;
+    const fecha = document.getElementById("fechaCita").value;
 
-        opcion.textContent = "Dr(a). " + doctor.nombre;
+    const hora = document.getElementById("horaCita").value;
 
-        select.appendChild(opcion);
+    const motivo = document.getElementById("motivoCita").value.trim();
+
+    if (doctorId === "" || fecha === "" || hora === "") {
+
+        mostrarMensaje(
+            "Por favor, completa área, doctor, fecha y hora.",
+            "error"
+        );
+
+        return;
+
+    }
+
+    const boton = document.getElementById("btnConfirmarCita");
+
+    // Evita enviar dos veces con un doble clic
+    boton.disabled = true;
+
+    try {
+
+        await llamarApi("/citas", {
+
+            metodo: "POST",
+
+            cuerpo: {
+
+                doctorId: Number(doctorId),
+
+                fecha: fecha,
+
+                hora: hora,
+
+                motivo: motivo
+
+            }
+
+        });
+
+        mostrarMensaje(
+            "Cita agendada correctamente. El doctor la confirmará pronto.",
+            "exito"
+        );
+
+        // Limpiar el formulario
+        document.getElementById("especialidadCita").value = "";
+
+        poblarDoctores();
+
+        document.getElementById("fechaCita").value = "";
+
+        document.getElementById("motivoCita").value = "";
+
+        await cargarCitas();
+
+        mostrarSeccionPaciente("citas");
+
+    } catch (error) {
+
+        mostrarMensaje(error.message, "error");
+
+        // 409: alguien ocupó esa hora justo antes. Se refrescan las horas
+        if (error.estado === 409) {
+
+            cargarHoras();
+
+        }
+
+    } finally {
+
+        boton.disabled = false;
+
+    }
+
+}
+
+
+// ========================================
+// CITAS
+// ========================================
+
+async function cargarCitas() {
+
+    try {
+
+        citas = await llamarApi("/citas");
+
+        dibujarCitas();
+
+    } catch (error) {
+
+        mostrarMensaje(error.message, "error");
+
+    }
+
+}
+
+
+function dibujarCitas() {
+
+    const hoy = fechaDeHoy();
+
+    // La próxima cita: activa y de hoy en adelante
+    // (la API entrega las citas ordenadas por fecha y hora)
+    const activas = citas.filter(function(cita) {
+
+        return (
+            ESTADOS_ACTIVOS.includes(cita.estado) &&
+            cita.fecha >= hoy
+        );
+
+    });
+
+    const proxima = activas[0] || null;
+
+    const bannerTitulo = document.getElementById("bannerTitulo");
+
+    const bannerTexto = document.getElementById("bannerTexto");
+
+    const btnCancelar = document.getElementById("btnCancelarProxima");
+
+    if (!proxima) {
+
+        idProximaCita = null;
+
+        bannerTitulo.textContent = "No tienes citas agendadas";
+
+        bannerTexto.textContent =
+            "Agenda tu primera cita médica usando el botón de abajo";
+
+        btnCancelar.classList.add("oculto");
+
+    } else {
+
+        idProximaCita = proxima.id;
+
+        bannerTitulo.textContent =
+            "Tienes " + activas.length + " cita(s) agendada(s)";
+
+        bannerTexto.textContent =
+            "Próxima cita: " + proxima.especialidad +
+            " con el Dr(a). " + proxima.doctor +
+            " el " + formatearFecha(proxima.fecha) +
+            " a las " + formatoHora(proxima.hora);
+
+        btnCancelar.classList.toggle(
+            "oculto",
+            !ESTADOS_CANCELABLES.includes(proxima.estado)
+        );
+
+    }
+
+    // Las más recientes primero
+    const recientesPrimero = citas.slice().reverse();
+
+    dibujarListaCitas(
+        document.getElementById("historialCitas"),
+        recientesPrimero.slice(0, 5),
+        false
+    );
+
+    dibujarListaCitas(
+        document.getElementById("listaMisCitas"),
+        recientesPrimero,
+        true
+    );
+
+}
+
+
+// Dibuja una lista de citas con textContent (nunca innerHTML)
+function dibujarListaCitas(contenedor, lista, conBotonCancelar) {
+
+    contenedor.replaceChildren();
+
+    if (lista.length === 0) {
+
+        const vacio = document.createElement("p");
+
+        vacio.className = "texto-vacio";
+
+        vacio.textContent = "No tienes citas registradas aún";
+
+        contenedor.appendChild(vacio);
+
+        return;
+
+    }
+
+    lista.forEach(function(cita) {
+
+        const fila = document.createElement("div");
+
+        fila.className = "fila-cita";
+
+
+        // ---------- Información ----------
+
+        const info = document.createElement("div");
+
+        const titulo = document.createElement("strong");
+
+        titulo.textContent = cita.especialidad;
+
+        const lineaDoctor = document.createElement("p");
+
+        lineaDoctor.textContent = "Dr(a). " + cita.doctor;
+
+        const lineaFecha = document.createElement("p");
+
+        lineaFecha.textContent =
+            formatearFecha(cita.fecha) + " - " + formatoHora(cita.hora);
+
+        info.appendChild(titulo);
+
+        info.appendChild(lineaDoctor);
+
+        info.appendChild(lineaFecha);
+
+        if (cita.motivo) {
+
+            const lineaMotivo = document.createElement("p");
+
+            lineaMotivo.textContent = "Motivo: " + cita.motivo;
+
+            info.appendChild(lineaMotivo);
+
+        }
+
+
+        // ---------- Estado y botón ----------
+
+        const derecha = document.createElement("div");
+
+        derecha.className = "acciones-cita";
+
+        const etiqueta = document.createElement("span");
+
+        etiqueta.className =
+            "etiqueta-estado " + (CLASE_ESTADO[cita.estado] || "");
+
+        etiqueta.textContent = TEXTO_ESTADO[cita.estado] || cita.estado;
+
+        derecha.appendChild(etiqueta);
+
+        if (
+            conBotonCancelar &&
+            ESTADOS_CANCELABLES.includes(cita.estado)
+        ) {
+
+            const boton = document.createElement("button");
+
+            boton.className = "btn btn-peligro btn-pequeno";
+
+            boton.textContent = "Cancelar";
+
+            boton.addEventListener("click", function() {
+
+                cancelarCitaPorId(cita.id);
+
+            });
+
+            derecha.appendChild(boton);
+
+        }
+
+        fila.appendChild(info);
+
+        fila.appendChild(derecha);
+
+        contenedor.appendChild(fila);
 
     });
 
 }
 
 
-// ========================================
-// CONFIRMAR NUEVA CITA
-// ========================================
+async function cancelarCitaPorId(idCita) {
 
-function confirmarCita() {
+    const cita = citas.find(function(item) {
 
-    const especialidad =
-        document.getElementById("especialidadCita").value;
+        return item.id === idCita;
 
-    const doctorId =
-        document.getElementById("doctorCita").value;
+    });
 
-    const fecha =
-        document.getElementById("fechaCita").value;
-
-    const hora =
-        document.getElementById("horaCita").value;
-
-
-    if (
-        especialidad === "" ||
-        doctorId === "" ||
-        fecha === "" ||
-        hora === ""
-    ) {
-
-        alert("Por favor, completa todos los campos de la cita.");
+    if (!cita) {
 
         return;
 
     }
 
-
-    const usuarios =
-        obtenerUsuarios();
-
-    const doctor =
-        usuarios.find(function(usuario) {
-
-            return usuario.id === Number(doctorId);
-
-        });
-
-
-    if (!doctor) {
-
-        alert("No se pudo encontrar el doctor seleccionado.");
-
-        return;
-
-    }
-
-
-    const nuevaCita = {
-
-        id: Date.now(),
-
-        pacienteId: usuarioActual.id,
-
-        especialidad: especialidad,
-
-        doctorId: doctor.id,
-
-        doctorNombre: doctor.nombre,
-
-        fecha: fecha,
-
-        hora: hora,
-
-        estado: "Pendiente"
-
-    };
-
-
-    const citas =
-        obtenerCitasMedicitas();
-
-    citas.push(nuevaCita);
-
-    guardarCitasMedicitas(citas);
-
-
-    alert("Cita agendada correctamente.");
-
-
-    // Limpiar formulario
-    document.getElementById("especialidadCita").value = "";
-
-    document.getElementById("doctorCita").value = "";
-
-    document.getElementById("fechaCita").value = "";
-
-    document.getElementById("horaCita").value = "";
-
-
-    // Actualizar vistas y regresar al dashboard
-    actualizarVistaCitas();
-
-    mostrarSeccionPaciente("citas");
-
-}
-
-
-// ========================================
-// CANCELAR LA PRÓXIMA CITA (LA QUE SE MUESTRA EN EL BANNER)
-// ========================================
-
-function cancelarProximaCita() {
-
-    if (idProximaCitaActiva === null) {
-
-        alert("No tienes citas para cancelar.");
-
-        return;
-
-    }
-
-
-    const todasLasCitas =
-        obtenerCitasMedicitas();
-
-    const citaACancelar =
-        todasLasCitas.find(function(cita) {
-
-            return cita.id === idProximaCitaActiva;
-
-        });
-
-
-    if (!citaACancelar) {
-
-        return;
-
-    }
-
-
-    const confirmacion =
-        confirm(
-            "¿Deseas cancelar tu cita de " +
-            citaACancelar.especialidad +
-            " el " +
-            citaACancelar.fecha +
-            " a las " +
-            citaACancelar.hora +
-            "?"
-        );
-
+    const confirmacion = confirm(
+        "¿Deseas cancelar tu cita de " + cita.especialidad +
+        " el " + formatearFecha(cita.fecha) +
+        " a las " + formatoHora(cita.hora) + "?"
+    );
 
     if (!confirmacion) {
 
@@ -755,270 +890,154 @@ function cancelarProximaCita() {
 
     }
 
+    try {
 
-    const posicion =
-        todasLasCitas.findIndex(function(cita) {
-
-            return cita.id === citaACancelar.id;
-
+        await llamarApi("/citas/" + idCita + "/cancelar", {
+            metodo: "PATCH"
         });
 
+        mostrarMensaje("La cita fue cancelada.", "exito");
 
-    // Si la cita ya estaba confirmada por el doctor, se le
-    // notifica que el paciente la canceló (si solo estaba
-    // "Pendiente" de confirmar, el doctor no llega a
-    // notificarse porque nunca llegó a confirmarla)
-    if (citaACancelar.estado === "Confirmada") {
+        await cargarCitas();
 
-        crearNotificacion(
+    } catch (error) {
 
-            citaACancelar.doctorId,
+        mostrarMensaje(error.message, "error");
 
-            "El paciente " + usuarioActual.nombre +
-            " canceló su cita de " + citaACancelar.especialidad +
-            " que tenías confirmada para el " +
-            citaACancelar.fecha +
-            " a las " +
-            citaACancelar.hora +
-            "."
-
-        );
+        // Si alguien más la modificó, se actualiza la lista
+        await cargarCitas();
 
     }
-
-
-    todasLasCitas[posicion].estado = "Cancelada";
-
-    guardarCitasMedicitas(todasLasCitas);
-
-
-    alert("La cita ha sido cancelada.");
-
-
-    actualizarVistaCitas();
 
 }
 
 
-// ========================================
-// MARCAR LA PRÓXIMA CITA COMO COMPLETADA
-// ========================================
-// Al completarla, deja de contar como "activa" y
-// automáticamente se proyecta la siguiente cita
-// (Pendiente o Confirmada) más próxima en fecha/hora.
-// ========================================
+function cancelarProximaCita() {
 
-function completarProximaCita() {
+    if (idProximaCita === null) {
 
-    if (idProximaCitaActiva === null) {
+        mostrarMensaje("No tienes citas para cancelar.", "info");
 
         return;
 
     }
 
-
-    const todasLasCitas =
-        obtenerCitasMedicitas();
-
-    const posicion =
-        todasLasCitas.findIndex(function(cita) {
-
-            return cita.id === idProximaCitaActiva;
-
-        });
-
-
-    if (posicion === -1) {
-
-        return;
-
-    }
-
-
-    todasLasCitas[posicion].estado = "Completada";
-
-    guardarCitasMedicitas(todasLasCitas);
-
-
-    alert("Cita marcada como completada.");
-
-
-    actualizarVistaCitas();
+    cancelarCitaPorId(idProximaCita);
 
 }
 
 
 // ========================================
-// ACTUALIZAR TODAS LAS VISTAS RELACIONADAS A CITAS
+// NOTIFICACIONES (LA CAMPANA)
 // ========================================
 
-function actualizarVistaCitas() {
+function actualizarContador(cantidad) {
 
-    const citasPaciente =
-        obtenerCitasDelPaciente();
+    const contador = document.getElementById("contadorNotificaciones");
 
+    if (cantidad === 0) {
 
-    // ========================================
-    // BANNER Y HISTORIAL EN INICIO
-    // ========================================
-
-    const bannerTitulo =
-        document.getElementById("bannerTitulo");
-
-    const bannerTexto =
-        document.getElementById("bannerTexto");
-
-    const btnCompletar =
-        document.getElementById("btnCompletarProxima");
-
-
-    // Una cita sigue "activa" (cuenta como próxima) mientras
-    // esté Pendiente o Confirmada. Solo desaparece cuando el
-    // paciente la marca como Completada, o si es Cancelada.
-    const citasActivas =
-        citasPaciente.filter(function(cita) {
-
-            return (
-                cita.estado === "Pendiente" ||
-                cita.estado === "Confirmada"
-            );
-
-        });
-
-    const citasActivasOrdenadas =
-        ordenarCitasPorFechaHora(citasActivas);
-
-    const proximaCita =
-        citasActivasOrdenadas[0] || null;
-
-
-    if (!proximaCita) {
-
-        idProximaCitaActiva = null;
-
-        bannerTitulo.textContent =
-            "No tienes citas agendadas";
-
-        bannerTexto.textContent =
-            "Agenda tu primera cita médica usando el botón de abajo";
-
-        btnCompletar.classList.add("oculto");
+        contador.classList.add("oculto");
 
     } else {
 
-        idProximaCitaActiva = proximaCita.id;
+        contador.textContent = cantidad;
 
-        bannerTitulo.textContent =
-            "Tienes " + citasActivasOrdenadas.length + " cita(s) agendada(s)";
-
-        bannerTexto.textContent =
-            "Próxima cita: " +
-            proximaCita.especialidad +
-            " el " +
-            proximaCita.fecha +
-            " a las " +
-            proximaCita.hora;
-
-        btnCompletar.classList.remove("oculto");
-
-    }
-
-
-    const historialCitas =
-        document.getElementById("historialCitas");
-
-    renderizarListaCitas(historialCitas, citasPaciente);
-
-
-    // ========================================
-    // SECCIÓN "MIS CITAS"
-    // ========================================
-
-    const listaMisCitas =
-        document.getElementById("listaMisCitas");
-
-    if (citasPaciente.length === 0) {
-
-        listaMisCitas.innerHTML = `
-
-            <p class="texto-vacio">No tienes citas registradas aún</p>
-
-            <div class="centrado">
-
-                <button
-                    class="btn btn-primario"
-                    onclick="mostrarSeccionPaciente('agendar')">
-
-                    Agendar primera cita
-
-                </button>
-
-            </div>
-
-        `;
-
-    } else {
-
-        renderizarListaCitas(listaMisCitas, citasPaciente);
+        contador.classList.remove("oculto");
 
     }
 
 }
 
 
-// ========================================
-// DIBUJAR UNA LISTA DE CITAS EN UN CONTENEDOR
-// ========================================
+// Consulta periódica: solo actualiza la burbuja roja
+async function cargarNotificaciones() {
 
-function renderizarListaCitas(contenedor, citas) {
+    try {
 
-    if (citas.length === 0) {
+        const datos = await llamarApi("/notificaciones");
 
-        contenedor.innerHTML =
-            '<p class="texto-vacio">No tienes citas registradas aún</p>';
+        actualizarContador(datos.noLeidas);
+
+    } catch (error) {
+
+        // Un fallo de la campana no debe molestar al usuario
+        console.error(error);
+
+    }
+
+}
+
+
+function dibujarNotificaciones(lista) {
+
+    const contenedor = document.getElementById("listaNotificaciones");
+
+    contenedor.replaceChildren();
+
+    if (lista.length === 0) {
+
+        const vacio = document.createElement("p");
+
+        vacio.className = "texto-vacio";
+
+        vacio.textContent = "No tienes notificaciones";
+
+        contenedor.appendChild(vacio);
 
         return;
 
     }
 
+    lista.forEach(function(notificacion) {
 
-    // Mostrar primero la cita más reciente en registrarse
-    // (la última que se agregó al arreglo)
-    const citasOrdenadas =
-        citas.slice().reverse();
+        const item = document.createElement("div");
 
+        item.className = "notificacion-item" +
+            (notificacion.leida ? "" : " notificacion-nueva");
 
-    let html = "";
+        item.textContent = notificacion.mensaje;
 
-    citasOrdenadas.forEach(function(cita) {
-
-        html = html + `
-
-            <div class="fila-cita">
-
-                <div>
-
-                    <strong>${cita.especialidad}</strong>
-
-                    <p>Dr(a). ${cita.doctorNombre}</p>
-
-                    <p>${cita.fecha} - ${cita.hora}</p>
-
-                </div>
-
-                <span class="etiqueta-estado etiqueta-${cita.estado.toLowerCase()}">
-
-                    ${cita.estado}
-
-                </span>
-
-            </div>
-
-        `;
+        contenedor.appendChild(item);
 
     });
 
+}
 
-    contenedor.innerHTML = html;
+
+async function alternarPanelNotificaciones() {
+
+    const panel = document.getElementById("panelNotificaciones");
+
+    panel.classList.toggle("oculto");
+
+    // Si se acaba de cerrar, no hay nada más que hacer
+    if (panel.classList.contains("oculto")) {
+
+        return;
+
+    }
+
+    try {
+
+        const datos = await llamarApi("/notificaciones");
+
+        // Se dibujan primero (con las nuevas resaltadas)...
+        dibujarNotificaciones(datos.notificaciones);
+
+        // ...y después se marcan como leídas
+        if (datos.noLeidas > 0) {
+
+            await llamarApi("/notificaciones/leer", { metodo: "PATCH" });
+
+        }
+
+        actualizarContador(0);
+
+    } catch (error) {
+
+        mostrarMensaje(error.message, "error");
+
+    }
 
 }

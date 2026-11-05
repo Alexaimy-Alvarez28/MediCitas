@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Panel del paciente | MediCitas</title>
 <link rel="stylesheet" href="estilos.css">
-<script src="js/datos.js"></script>
+<link rel="stylesheet" href="estilos-app.css">
 </head>
 <body class="fondo-dashboard">
 
@@ -128,28 +128,9 @@
 
                 <div id="bannerInicio" class="banner-gradiente">
 
-                    <div class="banner-encabezado">
+                    <h3 id="bannerTitulo">Cargando tus citas...</h3>
 
-                        <div>
-
-                            <h3 id="bannerTitulo">No tienes citas agendadas</h3>
-
-                            <p id="bannerTexto">
-                                Agenda tu primera cita médica usando el botón de abajo
-                            </p>
-
-                        </div>
-
-                        <button
-                            id="btnCompletarProxima"
-                            class="btn-completar oculto"
-                            onclick="completarProximaCita()">
-
-                            Completada
-
-                        </button>
-
-                    </div>
+                    <p id="bannerTexto"></p>
 
                 </div>
 
@@ -164,10 +145,11 @@
                     </button>
 
                     <button
-                        class="btn btn-peligro"
+                        id="btnCancelarProxima"
+                        class="btn btn-peligro oculto"
                         onclick="cancelarProximaCita()">
 
-                        Cancelar cita
+                        Cancelar próxima cita
 
                     </button>
 
@@ -175,11 +157,11 @@
 
                 <div class="tarjeta-blanca">
 
-                    <h3 class="tarjeta-titulo">Historial de citas</h3>
+                    <h3 class="tarjeta-titulo">Citas recientes</h3>
 
                     <div id="historialCitas">
 
-                        <p class="texto-vacio">No tienes citas registradas aún</p>
+                        <p class="cargando">Cargando...</p>
 
                     </div>
 
@@ -200,19 +182,7 @@
 
                     <div id="listaMisCitas">
 
-                        <p class="texto-vacio">No tienes citas registradas aún</p>
-
-                        <div class="centrado">
-
-                            <button
-                                class="btn btn-primario"
-                                onclick="mostrarSeccionPaciente('agendar')">
-
-                                Agendar primera cita
-
-                            </button>
-
-                        </div>
+                        <p class="cargando">Cargando...</p>
 
                     </div>
 
@@ -242,23 +212,15 @@
 
                         <label for="especialidadCita">Área</label>
 
-                        <select id="especialidadCita" onchange="cargarDoctoresDisponibles()">
+                        <select id="especialidadCita">
 
                             <option value="">Selecciona un área</option>
 
-                            <option value="Medicina general">Medicina general</option>
-
-                            <option value="Pediatría">Pediatría</option>
-
-                            <option value="Ginecología">Ginecología</option>
-
-                            <option value="Cardiología">Cardiología</option>
-
-                            <option value="Dermatología">Dermatología</option>
-
-                            <option value="Odontología">Odontología</option>
-
                         </select>
+
+                        <p id="avisoArea" class="aviso-advertencia oculto">
+                            Aún no hay doctores registrados en la clínica.
+                        </p>
 
                     </div>
 
@@ -266,13 +228,13 @@
 
                         <label for="doctorCita">Doctor</label>
 
-                        <select id="doctorCita">
+                        <select id="doctorCita" disabled>
 
                             <option value="">Selecciona un doctor</option>
 
                         </select>
 
-                        <p id="avisoDoctor" class="aviso-advertencia oculto">
+                        <p id="avisoDoctor" class="aviso-advertencia">
                             Selecciona primero un área.
                         </p>
 
@@ -290,31 +252,31 @@
 
                         <label for="horaCita">Hora</label>
 
-                        <select id="horaCita">
+                        <select id="horaCita" disabled>
 
-                            <option value="">Selecciona una hora</option>
-
-                            <option value="8:00 AM">8:00 AM</option>
-
-                            <option value="9:00 AM">9:00 AM</option>
-
-                            <option value="10:00 AM">10:00 AM</option>
-
-                            <option value="11:00 AM">11:00 AM</option>
-
-                            <option value="1:00 PM">1:00 PM</option>
-
-                            <option value="2:00 PM">2:00 PM</option>
-
-                            <option value="3:00 PM">3:00 PM</option>
-
-                            <option value="4:00 PM">4:00 PM</option>
+                            <option value="">Selecciona doctor y fecha</option>
 
                         </select>
+
+                        <p id="avisoHoras" class="aviso-advertencia oculto"></p>
+
+                    </div>
+
+                    <div class="campo">
+
+                        <label for="motivoCita">Motivo de la consulta (opcional)</label>
+
+                        <input
+                            type="text"
+                            id="motivoCita"
+                            maxlength="500"
+                            placeholder="Ej. Control general, dolor de cabeza..."
+                        >
 
                     </div>
 
                     <button
+                        id="btnConfirmarCita"
                         class="btn btn-primario btn-ancho"
                         onclick="confirmarCita()">
 
@@ -341,31 +303,52 @@
 
                         <label for="perfilNombre">Nombre</label>
 
-                        <input type="text" id="perfilNombre" readonly>
+                        <input type="text" id="perfilNombre" maxlength="120">
 
                     </div>
 
-                    <div class="campo">
+                    <div class="campo-doble">
 
-                        <label for="perfilCorreo">Correo</label>
+                        <div class="campo">
 
-                        <input type="email" id="perfilCorreo" readonly>
+                            <label for="perfilCorreo">Correo</label>
+
+                            <input type="email" id="perfilCorreo" readonly>
+
+                        </div>
+
+                        <div class="campo">
+
+                            <label for="perfilTelefono">Teléfono</label>
+
+                            <input type="tel" id="perfilTelefono" maxlength="30">
+
+                        </div>
 
                     </div>
 
-                    <div class="campo">
+                    <div class="campo-doble">
 
-                        <label for="perfilTelefono">Teléfono</label>
+                        <div class="campo">
 
-                        <input type="tel" id="perfilTelefono" readonly>
+                            <label for="perfilDocumento">Documento</label>
 
-                    </div>
+                            <input
+                                type="text"
+                                id="perfilDocumento"
+                                placeholder="No registrado"
+                                readonly
+                            >
 
-                    <div class="campo">
+                        </div>
 
-                        <label for="perfilTipo">Tipo de usuario</label>
+                        <div class="campo">
 
-                        <input type="text" id="perfilTipo" readonly>
+                            <label for="perfilFechaNacimiento">Fecha de nacimiento</label>
+
+                            <input type="date" id="perfilFechaNacimiento">
+
+                        </div>
 
                     </div>
 
@@ -376,6 +359,7 @@
                         <input
                             type="text"
                             id="perfilDireccion"
+                            maxlength="300"
                             placeholder="Calle, número, sector, ciudad"
                         >
 
@@ -391,11 +375,12 @@
 
                         <label for="perfilAlergias">Alergias</label>
 
-                        <input
-                            type="text"
+                        <textarea
                             id="perfilAlergias"
+                            rows="2"
+                            maxlength="500"
                             placeholder="Ej. Penicilina, mariscos, ninguna..."
-                        >
+                        ></textarea>
 
                     </div>
 
@@ -438,54 +423,63 @@
                         <input
                             type="text"
                             id="perfilEmergenciaNombre"
+                            maxlength="120"
                             placeholder="Nombre completo"
                         >
 
                     </div>
 
-                    <div class="campo">
+                    <div class="campo-doble">
 
-                        <label for="perfilEmergenciaParentesco">Parentesco</label>
+                        <div class="campo">
 
-                        <select id="perfilEmergenciaParentesco">
+                            <label for="perfilEmergenciaParentesco">Parentesco</label>
 
-                            <option value="">Selecciona el parentesco</option>
+                            <select id="perfilEmergenciaParentesco">
 
-                            <option value="Padre">Padre</option>
+                                <option value="">Selecciona el parentesco</option>
 
-                            <option value="Madre">Madre</option>
+                                <option value="Padre">Padre</option>
 
-                            <option value="Hermano(a)">Hermano(a)</option>
+                                <option value="Madre">Madre</option>
 
-                            <option value="Esposo(a)">Esposo(a)</option>
+                                <option value="Hermano(a)">Hermano(a)</option>
 
-                            <option value="Hijo(a)">Hijo(a)</option>
+                                <option value="Esposo(a)">Esposo(a)</option>
 
-                            <option value="Amigo(a)">Amigo(a)</option>
+                                <option value="Hijo(a)">Hijo(a)</option>
 
-                            <option value="Otro">Otro</option>
+                                <option value="Amigo(a)">Amigo(a)</option>
 
-                        </select>
+                                <option value="Otro">Otro</option>
+
+                            </select>
+
+                        </div>
+
+                        <div class="campo">
+
+                            <label for="perfilEmergenciaTelefono">Teléfono</label>
+
+                            <input
+                                type="tel"
+                                id="perfilEmergenciaTelefono"
+                                maxlength="30"
+                                placeholder="(555) 123-4567"
+                            >
+
+                        </div>
 
                     </div>
 
-                    <div class="campo">
+                    <p class="nota">
+                        El teléfono de emergencia no puede ser el mismo que tu teléfono personal.
+                    </p>
 
-                        <label for="perfilEmergenciaTelefono">Teléfono</label>
-
-                        <input
-                            type="tel"
-                            id="perfilEmergenciaTelefono"
-                            placeholder="(555) 123-4567"
-                        >
-
-                        <p class="aviso-advertencia oculto" id="avisoEmergenciaTelefono">
-                            El teléfono de emergencia no puede ser el mismo que tu teléfono personal.
-                        </p>
-
-                    </div>
+                    <br>
 
                     <button
+                        id="btnGuardarPerfil"
                         class="btn btn-primario"
                         onclick="guardarPerfilPaciente()">
 
@@ -506,6 +500,7 @@
 
     </div>
 
+    <script src="js/api.js"></script>
     <script src="js/dashboard-paciente.js"></script>
 
 </body>

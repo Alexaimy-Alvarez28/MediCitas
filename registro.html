@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Crear cuenta | MediCitas</title>
 <link rel="stylesheet" href="estilos.css">
-<script src="js/datos.js"></script>
+<link rel="stylesheet" href="estilos-app.css">
 </head>
 <body class="fondo-auth">
 
@@ -21,7 +21,7 @@
 
         <div class="auth-tarjeta">
 
-            <h2>Crear cuenta</h2>
+            <h2>Crear cuenta de paciente</h2>
 
             <form id="formRegistro">
 
@@ -33,6 +33,7 @@
                         type="text"
                         id="nombreCompleto"
                         placeholder="Juan Pérez"
+                        maxlength="120"
                     >
 
                 </div>
@@ -57,6 +58,7 @@
                         type="tel"
                         id="telefono"
                         placeholder="(555) 123-4567"
+                        maxlength="30"
                     >
 
                 </div>
@@ -68,7 +70,7 @@
                     <input
                         type="password"
                         id="contrasena"
-                        placeholder="••••••••"
+                        placeholder="Mínimo 8 caracteres"
                     >
 
                 </div>
@@ -85,43 +87,10 @@
 
                 </div>
 
-                <div class="campo">
-
-                    <label for="tipoUsuario">Tipo de usuario</label>
-
-                    <select id="tipoUsuario" onchange="alternarCampoEspecialidad()">
-
-                        <option value="paciente">Paciente</option>
-
-                        <option value="doctor">Doctor</option>
-
-                    </select>
-
-                </div>
-
-                <div class="campo oculto" id="campoEspecialidad">
-
-                    <label for="especialidadUsuario">Especialidad</label>
-
-                    <select id="especialidadUsuario">
-
-                        <option value="Medicina general">Medicina general</option>
-
-                        <option value="Pediatría">Pediatría</option>
-
-                        <option value="Ginecología">Ginecología</option>
-
-                        <option value="Cardiología">Cardiología</option>
-
-                        <option value="Dermatología">Dermatología</option>
-
-                        <option value="Odontología">Odontología</option>
-
-                    </select>
-
-                </div>
-
-                <button type="submit" class="btn btn-primario btn-ancho">
+                <button
+                    type="submit"
+                    id="btnRegistrar"
+                    class="btn btn-primario btn-ancho">
                     Registrarse
                 </button>
 
@@ -131,56 +100,31 @@
                 ¿Ya tienes cuenta? <a href="login.html">Iniciar sesión</a>
             </p>
 
+            <p class="nota centrado">
+                ¿Eres doctor? Tu cuenta la crea la clínica.
+            </p>
+
         </div>
 
         <a href="index.html" class="volver-inicio">← Volver al inicio</a>
 
     </div>
 
+    <script src="js/api.js"></script>
+
     <script>
 
         // ========================================
-        // MOSTRAR/OCULTAR CAMPO DE ESPECIALIDAD
-        // ========================================
-        // Solo los doctores necesitan especialidad
-        // ========================================
-
-        function alternarCampoEspecialidad() {
-
-            const tipoUsuario =
-                document.getElementById("tipoUsuario").value;
-
-            const campoEspecialidad =
-                document.getElementById("campoEspecialidad");
-
-
-            if (tipoUsuario === "doctor") {
-
-                campoEspecialidad.classList.remove("oculto");
-
-            } else {
-
-                campoEspecialidad.classList.add("oculto");
-
-            }
-
-        }
-
-
-        // ========================================
-        // MANEJAR ENVÍO DEL FORMULARIO DE REGISTRO
+        // ENVÍO DEL FORMULARIO DE REGISTRO
         // ========================================
 
         const formRegistro =
             document.getElementById("formRegistro");
 
-        formRegistro.addEventListener("submit", function(evento) {
+        formRegistro.addEventListener("submit", async function(evento) {
 
-            // Evitar que la página se recargue
             evento.preventDefault();
 
-
-            // Obtener valores del formulario
             const nombre =
                 document.getElementById("nombreCompleto").value.trim();
 
@@ -196,13 +140,7 @@
             const confirmarContrasena =
                 document.getElementById("confirmarContrasena").value;
 
-            const tipoUsuario =
-                document.getElementById("tipoUsuario").value;
 
-            const especialidad =
-                tipoUsuario === "doctor"
-                    ? document.getElementById("especialidadUsuario").value
-                    : "";
             if (
                 nombre === "" ||
                 correo === "" ||
@@ -211,75 +149,72 @@
                 confirmarContrasena === ""
             ) {
 
-                alert("Por favor, completa todos los campos.");
+                mostrarMensaje(
+                    "Por favor, completa todos los campos.",
+                    "error"
+                );
 
                 return;
 
             }
 
+            if (contrasena.length < 8) {
 
-            // Validar que las contraseñas coincidan
+                mostrarMensaje(
+                    "La contraseña debe tener al menos 8 caracteres.",
+                    "error"
+                );
+
+                return;
+
+            }
+
             if (contrasena !== confirmarContrasena) {
 
-                alert("Las contraseñas no coinciden.");
+                mostrarMensaje("Las contraseñas no coinciden.", "error");
 
                 return;
 
             }
 
 
-            // Verificar que el correo no esté ya registrado
-            const usuarios =
-                obtenerUsuarios();
+            const boton = document.getElementById("btnRegistrar");
 
-            const correoExistente =
-                usuarios.find(function(usuario) {
+            boton.disabled = true;
 
-                    return usuario.correo.toLowerCase() === correo.toLowerCase();
+            try {
+
+                await llamarApi("/auth/registro", {
+
+                    metodo: "POST",
+
+                    cuerpo: {
+                        nombre: nombre,
+                        correo: correo,
+                        telefono: telefono,
+                        contrasena: contrasena
+                    }
 
                 });
 
+                mostrarMensaje(
+                    "Cuenta creada. Ya puedes iniciar sesión.",
+                    "exito"
+                );
 
-            if (correoExistente) {
+                setTimeout(function() {
 
-                alert("Ya existe una cuenta registrada con ese correo.");
+                    window.location.href = "login.html";
 
-                return;
+                }, 1200);
+
+            } catch (error) {
+
+                mostrarMensaje(error.message, "error");
+
+                boton.disabled = false;
 
             }
-
-
-            // Crear nuevo usuario
-            const nuevoUsuario = {
-
-                id: Date.now(),
-
-                nombre: nombre,
-
-                correo: correo,
-
-                telefono: telefono,
-
-                contrasena: contrasena,
-
-                tipo: tipoUsuario,
-
-                especialidad: especialidad
-
-            };
-
-
-            usuarios.push(nuevoUsuario);
-
-            guardarUsuarios(usuarios);
-
-
-            // Mensaje de confirmación
-            alert("Registro exitoso");
-
-
-            // Redirigir al login
-            window.location.href = "login.html";
 
         });
 
