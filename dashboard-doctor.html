@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Panel del doctor | MediCitas</title>
 <link rel="stylesheet" href="estilos.css">
-<script src="js/datos.js"></script>
+<link rel="stylesheet" href="estilos-app.css">
 </head>
 <body class="fondo-dashboard">
 
@@ -29,19 +29,28 @@
 
                 <button
                     class="nav-item activo"
-                    data-seccion="inicio"
-                    onclick="mostrarSeccionDoctor('inicio')">
+                    data-seccion="cola"
+                    onclick="mostrarSeccionDoctor('cola')">
 
-                    <span><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5"/><path d="M5 10v10a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V10"/></svg></span> Inicio
+                    <span><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span> Cola de espera
 
                 </button>
 
                 <button
                     class="nav-item"
-                    data-seccion="pacientes"
-                    onclick="mostrarSeccionDoctor('pacientes')">
+                    data-seccion="nueva"
+                    onclick="mostrarSeccionDoctor('nueva')">
 
-                    <span><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span> Mis pacientes
+                    <span><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M12 14v4M10 16h4"/></svg></span> Nueva cita
+
+                </button>
+
+                <button
+                    class="nav-item"
+                    data-seccion="historial"
+                    onclick="mostrarSeccionDoctor('historial')">
+
+                    <span><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg></span> Historial
 
                 </button>
 
@@ -75,9 +84,9 @@
 
                 <div>
 
-                    <h1 id="tituloBienvenida">Bienvenido, Dr.</h1>
+                    <h1 id="tituloBienvenida">Cola de espera</h1>
 
-                    <p>Panel de control médico</p>
+                    <p id="subtituloPanel">Panel de recepción y consulta</p>
 
                 </div>
 
@@ -112,10 +121,28 @@
 
 
             <!-- ========================================
-            SECCIÓN: INICIO
+            SECCIÓN: COLA DE ESPERA
             ======================================== -->
 
-            <section id="seccionInicio" class="seccion-dashboard">
+            <section id="seccionCola" class="seccion-dashboard">
+
+                <div class="barra-fecha">
+
+                    <label for="campoFechaCola">Fecha</label>
+
+                    <input type="date" id="campoFechaCola">
+
+                    <button id="btnHoy" class="btn btn-outline btn-pequeno">
+                        Hoy
+                    </button>
+
+                    <a
+                        href="reporte-diario.html"
+                        class="btn btn-primario btn-pequeno btn-enlace">
+                        Reporte del día / imprimir
+                    </a>
+
+                </div>
 
                 <div class="tarjetas-resumen">
 
@@ -123,13 +150,13 @@
 
                         <div>
 
-                            <p class="resumen-etiqueta">Total de pacientes</p>
+                            <p class="resumen-etiqueta">Citas del día</p>
 
-                            <p id="totalPacientes" class="resumen-numero numero-azul">0</p>
+                            <p id="statTotal" class="resumen-numero numero-azul">0</p>
 
                         </div>
 
-                        <div class="resumen-icono icono-fondo-azul"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></div>
+                        <div class="resumen-icono icono-fondo-azul"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
 
                     </div>
 
@@ -137,13 +164,13 @@
 
                         <div>
 
-                            <p class="resumen-etiqueta">Citas pendientes</p>
+                            <p class="resumen-etiqueta">En sala de espera</p>
 
-                            <p id="totalPendientes" class="resumen-numero numero-naranja">0</p>
+                            <p id="statEspera" class="resumen-numero numero-naranja">0</p>
 
                         </div>
 
-                        <div class="resumen-icono icono-fondo-naranja"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
+                        <div class="resumen-icono icono-fondo-naranja"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
 
                     </div>
 
@@ -151,9 +178,9 @@
 
                         <div>
 
-                            <p class="resumen-etiqueta">Citas completadas</p>
+                            <p class="resumen-etiqueta">Atendidas</p>
 
-                            <p id="totalCompletadas" class="resumen-numero numero-verde">0</p>
+                            <p id="statCompletadas" class="resumen-numero numero-verde">0</p>
 
                         </div>
 
@@ -161,15 +188,29 @@
 
                     </div>
 
+                    <div class="tarjeta-resumen">
+
+                        <div>
+
+                            <p class="resumen-etiqueta">Ingresos del día</p>
+
+                            <p id="statIngresos" class="resumen-numero numero-verde">0</p>
+
+                        </div>
+
+                        <div class="resumen-icono icono-fondo-verde"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+
+                    </div>
+
                 </div>
 
                 <div class="tarjeta-blanca">
 
-                    <h3 class="tarjeta-titulo">Citas pendientes de confirmación</h3>
+                    <h3 id="tituloPendientes" class="tarjeta-titulo">Pendientes de confirmar</h3>
 
-                    <div id="listaPendientesConfirmar">
+                    <div id="listaPendientes">
 
-                        <p class="texto-vacio">No tienes citas pendientes de confirmación</p>
+                        <p class="cargando">Cargando...</p>
 
                     </div>
 
@@ -177,13 +218,33 @@
 
                 <div class="tarjeta-blanca">
 
-                    <h3 class="tarjeta-titulo">Citas pendientes</h3>
+                    <h3 class="tarjeta-titulo">En consulta</h3>
 
-                    <div id="listaCitasPendientes">
+                    <div id="listaConsulta"></div>
 
-                        <p class="texto-vacio">No tienes citas pendientes</p>
+                </div>
 
-                    </div>
+                <div class="tarjeta-blanca">
+
+                    <h3 class="tarjeta-titulo">Sala de espera</h3>
+
+                    <div id="listaEspera"></div>
+
+                </div>
+
+                <div class="tarjeta-blanca">
+
+                    <h3 class="tarjeta-titulo">Por llegar (confirmadas)</h3>
+
+                    <div id="listaPorLlegar"></div>
+
+                </div>
+
+                <div class="tarjeta-blanca">
+
+                    <h3 class="tarjeta-titulo">Por cobrar</h3>
+
+                    <div id="listaPorCobrar"></div>
 
                 </div>
 
@@ -191,20 +252,229 @@
 
 
             <!-- ========================================
-            SECCIÓN: MIS PACIENTES
+            SECCIÓN: NUEVA CITA (RECEPCIÓN)
             ======================================== -->
 
-            <section id="seccionPacientes" class="seccion-dashboard oculto">
+            <section id="seccionNueva" class="seccion-dashboard oculto">
 
                 <div class="tarjeta-blanca">
 
-                    <h3 class="tarjeta-titulo">Historial de pacientes</h3>
+                    <h3 class="tarjeta-titulo">1. Paciente</h3>
 
-                    <div id="historialPacientes">
+                    <div id="bloqueBusqueda">
 
-                        <p class="texto-vacio">No tienes pacientes registrados aún</p>
+                        <div class="campo">
+
+                            <label for="buscarPaciente">
+                                Buscar por nombre, documento o teléfono
+                            </label>
+
+                            <input
+                                type="text"
+                                id="buscarPaciente"
+                                placeholder="Escribe al menos 2 caracteres..."
+                                autocomplete="off"
+                            >
+
+                        </div>
+
+                        <div id="resultadosPaciente"></div>
+
+                        <button
+                            id="btnMostrarNuevoPaciente"
+                            class="btn btn-outline btn-pequeno">
+
+                            + Registrar paciente nuevo
+
+                        </button>
+
+                        <div id="formNuevoPaciente" class="caja-formulario oculto">
+
+                            <div class="campo">
+
+                                <label for="nuevoNombre">Nombre completo *</label>
+
+                                <input type="text" id="nuevoNombre" maxlength="120">
+
+                            </div>
+
+                            <div class="campo-doble">
+
+                                <div class="campo">
+
+                                    <label for="nuevoTelefono">Teléfono</label>
+
+                                    <input type="tel" id="nuevoTelefono" maxlength="30">
+
+                                </div>
+
+                                <div class="campo">
+
+                                    <label for="nuevoDocumento">Documento</label>
+
+                                    <input type="text" id="nuevoDocumento" maxlength="30">
+
+                                </div>
+
+                            </div>
+
+                            <div class="campo">
+
+                                <label for="nuevoNacimiento">Fecha de nacimiento</label>
+
+                                <input type="date" id="nuevoNacimiento">
+
+                            </div>
+
+                            <div class="grupo-botones">
+
+                                <button
+                                    id="btnCancelarNuevoPaciente"
+                                    class="btn btn-outline btn-pequeno">
+                                    Cancelar
+                                </button>
+
+                                <button
+                                    id="btnGuardarPaciente"
+                                    class="btn btn-primario btn-pequeno">
+                                    Guardar paciente
+                                </button>
+
+                            </div>
+
+                        </div>
 
                     </div>
+
+                    <div id="pacienteElegido" class="chip-paciente oculto">
+
+                        <span id="textoPacienteElegido"></span>
+
+                        <button
+                            id="btnCambiarPaciente"
+                            class="btn btn-outline btn-pequeno">
+                            Cambiar
+                        </button>
+
+                    </div>
+
+                </div>
+
+                <div class="tarjeta-blanca">
+
+                    <h3 class="tarjeta-titulo">2. Fecha y hora</h3>
+
+                    <div class="campo">
+
+                        <label for="fechaNueva">Fecha</label>
+
+                        <input type="date" id="fechaNueva">
+
+                    </div>
+
+                    <div class="campo">
+
+                        <label for="horaNueva">Hora</label>
+
+                        <select id="horaNueva" disabled>
+
+                            <option value="">Selecciona una fecha</option>
+
+                        </select>
+
+                        <p id="avisoHorasNueva" class="aviso-advertencia oculto"></p>
+
+                    </div>
+
+                    <div class="campo">
+
+                        <label for="motivoNueva">Motivo de la consulta (opcional)</label>
+
+                        <input
+                            type="text"
+                            id="motivoNueva"
+                            maxlength="500"
+                            placeholder="Ej. Control general, dolor de cabeza..."
+                        >
+
+                    </div>
+
+                    <label class="casilla">
+
+                        <input type="checkbox" id="autoConfirmar" checked>
+
+                        Dejar la cita confirmada automáticamente
+
+                    </label>
+
+                    <button
+                        id="btnAgendar"
+                        class="btn btn-primario btn-ancho">
+
+                        Agendar cita
+
+                    </button>
+
+                </div>
+
+            </section>
+
+
+            <!-- ========================================
+            SECCIÓN: HISTORIAL
+            ======================================== -->
+
+            <section id="seccionHistorial" class="seccion-dashboard oculto">
+
+                <div class="tarjeta-blanca">
+
+                    <h3 class="tarjeta-titulo">Historial de citas</h3>
+
+                    <div class="filtros">
+
+                        <div class="campo">
+
+                            <label for="filtroEstado">Estado</label>
+
+                            <select id="filtroEstado">
+
+                                <option value="">Todos</option>
+
+                                <option value="Pendiente">Pendiente</option>
+
+                                <option value="Confirmada">Confirmada</option>
+
+                                <option value="En sala">En sala</option>
+
+                                <option value="En consulta">En consulta</option>
+
+                                <option value="Completada">Completada</option>
+
+                                <option value="Cancelada">Cancelada</option>
+
+                                <option value="No asistio">No asistió</option>
+
+                            </select>
+
+                        </div>
+
+                        <div class="campo">
+
+                            <label for="filtroTexto">Paciente</label>
+
+                            <input
+                                type="text"
+                                id="filtroTexto"
+                                placeholder="Buscar por nombre..."
+                            >
+
+                        </div>
+
+                    </div>
+
+                    <div id="listaHistorial"></div>
+
+                    <p id="notaHistorial" class="nota"></p>
 
                 </div>
 
@@ -221,7 +491,7 @@
 
                     <div class="perfil-encabezado">
 
-                        <div id="perfilAvatar" class="perfil-avatar">R</div>
+                        <div id="perfilAvatar" class="perfil-avatar">D</div>
 
                         <div>
 
@@ -237,7 +507,7 @@
 
                         <label for="perfilNombre">Nombre completo</label>
 
-                        <input type="text" id="perfilNombre">
+                        <input type="text" id="perfilNombre" maxlength="120">
 
                     </div>
 
@@ -263,55 +533,45 @@
 
                     </div>
 
-                    <div class="campo">
+                    <div class="campo-doble">
 
-                        <label for="perfilCorreo">Correo electrónico</label>
+                        <div class="campo">
 
-                        <input type="email" id="perfilCorreo">
+                            <label for="perfilCorreo">Correo electrónico</label>
 
-                    </div>
+                            <input type="email" id="perfilCorreo" readonly>
 
-                    <div class="campo">
+                        </div>
 
-                        <label for="perfilTelefono">Teléfono</label>
+                        <div class="campo">
 
-                        <input type="tel" id="perfilTelefono">
+                            <label for="perfilTelefono">Teléfono</label>
 
-                    </div>
-
-                    <button
-                        class="btn btn-primario"
-                        onclick="guardarPerfilDoctor()">
-
-                        Guardar cambios
-
-                    </button>
-
-                    <div class="caja-estadisticas">
-
-                        <h4>Estadísticas</h4>
-
-                        <div class="estadisticas-grid">
-
-                            <div>
-
-                                <p class="resumen-etiqueta">Total de pacientes</p>
-
-                                <p id="statPacientes" class="resumen-numero numero-azul">0</p>
-
-                            </div>
-
-                            <div>
-
-                                <p class="resumen-etiqueta">Citas pendientes</p>
-
-                                <p id="statPendientes" class="resumen-numero numero-naranja">0</p>
-
-                            </div>
+                            <input type="tel" id="perfilTelefono" maxlength="30">
 
                         </div>
 
                     </div>
+
+                    <div class="campo">
+
+                        <label for="perfilPrecio">Precio de la consulta</label>
+
+                        <input type="text" id="perfilPrecio" readonly>
+
+                        <p class="nota">
+                            El correo y el precio de la consulta los define la clínica.
+                        </p>
+
+                    </div>
+
+                    <button
+                        id="btnGuardarPerfil"
+                        class="btn btn-primario">
+
+                        Guardar cambios
+
+                    </button>
 
                 </div>
 
@@ -326,6 +586,63 @@
 
     </div>
 
+
+    <!-- ========================================
+    VENTANA EMERGENTE: REGISTRAR COBRO
+    ======================================== -->
+
+    <div id="modalCobro" class="modal-fondo oculto">
+
+        <div class="modal-caja">
+
+            <h3>Registrar cobro</h3>
+
+            <p id="modalCobroPaciente" class="nota"></p>
+
+            <div class="campo">
+
+                <label for="cobroMetodo">Método de pago</label>
+
+                <select id="cobroMetodo">
+
+                    <option value="efectivo">Efectivo</option>
+
+                    <option value="tarjeta">Tarjeta</option>
+
+                    <option value="seguro">Seguro</option>
+
+                    <option value="transferencia">Transferencia</option>
+
+                </select>
+
+            </div>
+
+            <div class="campo">
+
+                <label for="cobroMonto">Monto</label>
+
+                <input type="number" id="cobroMonto" min="0" step="0.01">
+
+            </div>
+
+            <div class="grupo-botones">
+
+                <button id="btnCobroCancelar" class="btn btn-outline">
+                    Después
+                </button>
+
+                <button id="btnCobroConfirmar" class="btn btn-primario">
+                    Cobrar
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <script src="js/api.js"></script>
     <script src="js/dashboard-doctor.js"></script>
 
 </body>

@@ -10,18 +10,20 @@
 const API = "http://localhost:3000/api";
 
 // A qué página va cada rol después de iniciar sesión.
-// (Temporal: el panel del doctor y el del administrador se
-// conectan en las próximas lecciones; mientras tanto, ambos
-// usan la página del reporte.)
+// (Temporal: el panel del administrador se conecta en la
+// próxima lección; mientras tanto usa la página del reporte.)
 const PANEL_POR_ROL = {
 
     paciente: "dashboard-paciente.html",
 
-    doctor: "reporte-diario.html",
+    doctor: "dashboard-doctor.html",
 
     admin: "reporte-diario.html"
 
 };
+
+// Símbolo de moneda que se muestra (cámbialo según la clínica)
+const SIMBOLO_MONEDA = "$";
 
 
 // ========================================
@@ -218,7 +220,7 @@ function mostrarMensaje(texto, tipo) {
 
 
 // ========================================
-// FORMATOS DE FECHA Y HORA
+// FORMATOS DE FECHA, HORA Y DINERO
 // ========================================
 
 // "2026-11-12" -> "12/11/2026"
@@ -255,5 +257,21 @@ function formatoHora(hora24) {
 function fechaDeHoy() {
 
     return new Date().toLocaleDateString("en-CA");
+
+}
+
+
+const formatoNumero = new Intl.NumberFormat("en-US", {
+
+    minimumFractionDigits: 2,
+
+    maximumFractionDigits: 2
+
+});
+
+// 2000 -> "$2,000.00"
+function dinero(valor) {
+
+    return SIMBOLO_MONEDA + formatoNumero.format(valor);
 
 }

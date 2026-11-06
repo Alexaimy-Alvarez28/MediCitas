@@ -1,17 +1,99 @@
 // ========================================
 // RUTAS DE COBROS
 // ========================================
-// Se monta bajo /api/citas, así que la ruta final es:
+// Se montan bajo /api/citas, así que las rutas finales son:
+//     GET   /api/citas/por-cobrar
 //     PATCH /api/citas/:id/pago
 // ========================================
 
 const express = require("express");
 const pool = require("../db");
 const { verificarToken, soloRoles } = require("../middlewares/auth");
+const { fechaValida, fechaDeHoy } = require("../utils/fechas");
 
 const router = express.Router();
 
 const METODOS_PAGO = ["efectivo", "tarjeta", "seguro", "transferencia"];
+
+
+// ========================================
+// GET /api/citas/por-cobrar?fecha=AAAA-MM-DD
+// Citas del día, en consulta o completadas, sin cobrar
+// ========================================
+// Si no se indica fecha, se usa la de hoy.
+// ========================================
+
+router.get(
+    "/por-cobrar",
+    verificarToken,
+    soloRoles("doctor"),
+    async function(peticion, respuesta) {
+
+        const fecha =
+            peticion.query.fecha !== undefined
+                ? String(peticion.query.fecha)
+                : fechaDeHoy();
+
+        if (!fechaValida(fecha)) {
+
+            return respuesta.status(400).json({
+                mensaje: "La fecha debe tener el formato AAAA-MM-DD"
+            });
+
+        }
+
+
+        try {
+
+            const doctor = await pool.query(
+                "SELECT id, precio_consulta FROM doctores " +
+                "WHERE usuario_id = $1",
+                [peticion.usuario.id]
+            );
+
+            if (doctor.rows.length === 0) {
+
+                return respuesta.status(404).json({
+                    mensaje: "No se encontró tu perfil de doctor"
+                });
+
+            }
+
+            const resultado = await pool.query(
+                "SELECT c.id, c.estado, " +
+                "to_char(c.hora, 'HH24:MI') AS hora, " +
+                "c.motivo, p.nombre AS paciente " +
+                "FROM citas c " +
+                "JOIN pacientes p ON p.id = c.paciente_id " +
+                "WHERE c.doctor_id = $1 AND c.fecha = $2 " +
+                "AND c.estado IN ('En consulta', 'Completada') " +
+                "AND c.pagado_en IS NULL " +
+                "ORDER BY c.hora",
+                [doctor.rows[0].id, fecha]
+            );
+
+            respuesta.json({
+
+                fecha: fecha,
+
+                precioConsulta: doctor.rows[0].precio_consulta,
+
+                citas: resultado.rows
+
+            });
+
+        } catch (error) {
+
+            console.error(error);
+
+            respuesta.status(500).json({
+                mensaje: "Error al obtener las citas por cobrar"
+            });
+
+        }
+
+    }
+);
 
 
 // ========================================
