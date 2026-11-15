@@ -1,0 +1,665 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Administración | MediCitas</title>
+
+<link rel="stylesheet" href="estilos.css">
+<link rel="stylesheet" href="estilos-app.css">
+
+<style>
+* { box-sizing: border-box; }
+
+.admin-layout {
+    display: grid;
+    grid-template-columns: 240px minmax(0, 1fr);
+    min-height: 100vh;
+    background: #f5f8fc;
+    color: #203047;
+    font-family: Arial, sans-serif;
+}
+
+.admin-sidebar {
+    background: #123b65;
+    color: white;
+    padding: 28px 18px;
+}
+
+.admin-logo {
+    font-size: 25px;
+    font-weight: bold;
+    margin-bottom: 35px;
+}
+
+.admin-logo span { color: #74e3c1; }
+
+.admin-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.admin-nav button {
+    background: transparent;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 13px;
+    text-align: left;
+    cursor: pointer;
+    font-size: 15px;
+}
+
+.admin-nav button:hover,
+.admin-nav button.activo {
+    background: #235786;
+}
+
+.admin-main { padding: 32px; min-width: 0; }
+
+.admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+    margin-bottom: 25px;
+}
+
+.admin-header h1 { margin: 0 0 8px; }
+.admin-header p { margin: 0; color: #64748b; }
+
+.admin-cards {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+    margin-bottom: 25px;
+}
+
+.admin-card, .admin-panel {
+    background: white;
+    padding: 22px;
+    border-radius: 15px;
+    box-shadow: 0 4px 20px #1534550c;
+}
+
+.admin-card small { color: #64748b; }
+.admin-card strong {
+    display: block;
+    font-size: 34px;
+    margin-top: 10px;
+    color: #123b65;
+}
+
+.admin-panel { margin-bottom: 22px; }
+
+.admin-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+}
+
+.admin-btn {
+    padding: 11px 16px;
+    border: 0;
+    border-radius: 9px;
+    background: #1769aa;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.admin-btn:hover { opacity: .88; }
+.admin-btn:disabled { opacity: .5; cursor: wait; }
+.admin-btn.secundario { background: #e8eef5; color: #234; }
+.admin-btn.peligro { background: #b91c1c; }
+.admin-btn.exito { background: #087c62; }
+
+.admin-input {
+    width: 100%;
+    padding: 11px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 14px;
+}
+
+.admin-tabla-contenedor { overflow-x: auto; }
+
+.admin-tabla {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+.admin-tabla th, .admin-tabla td {
+    padding: 14px 10px;
+    border-bottom: 1px solid #e5eaf0;
+    vertical-align: middle;
+}
+
+.admin-tabla th { color: #52647b; font-size: 13px; }
+
+.admin-acciones {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.admin-acciones button {
+    padding: 7px 9px;
+    font-size: 12px;
+}
+
+.admin-estado {
+    display: inline-block;
+    padding: 5px 10px;
+    border-radius: 30px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.admin-estado.si { background: #dcfce7; color: #166534; }
+.admin-estado.no { background: #fee2e2; color: #991b1b; }
+
+.admin-formulario {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.admin-campo label {
+    display: block;
+    font-weight: bold;
+    font-size: 13px;
+    margin-bottom: 7px;
+}
+
+.admin-formulario-acciones {
+    grid-column: 1 / -1;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.admin-oculto { display: none !important; }
+
+.admin-aviso {
+    margin-bottom: 18px;
+    padding: 14px;
+    border-radius: 9px;
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.admin-aviso.error { background: #fee2e2; color: #991b1b; }
+.admin-aviso.exito { background: #dcfce7; color: #166534; }
+
+@media (max-width: 850px) {
+    .admin-layout { grid-template-columns: 1fr; }
+    .admin-sidebar { padding: 18px; }
+    .admin-logo { margin-bottom: 15px; }
+    .admin-nav { flex-direction: row; flex-wrap: wrap; }
+    .admin-main { padding: 18px; }
+    .admin-cards { grid-template-columns: 1fr; }
+    .admin-formulario { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+
+<body>
+<div class="admin-layout">
+
+    <aside class="admin-sidebar">
+        <div class="admin-logo">
+            <span>♥</span> MediCitas
+        </div>
+
+        <nav class="admin-nav">
+            <button id="navResumen" class="activo"
+                    onclick="mostrarVista('resumen')">
+                📊 Resumen
+            </button>
+
+            <button id="navDoctores"
+                    onclick="mostrarVista('doctores')">
+                👨‍⚕️ Doctores
+            </button>
+
+            <button onclick="cerrarSesion()">
+                🚪 Cerrar sesión
+            </button>
+        </nav>
+    </aside>
+
+    <main class="admin-main">
+        <header class="admin-header">
+            <div>
+                <h1>Panel de administración</h1>
+                <p>Gestión de personal médico de MediCitas</p>
+            </div>
+            <button class="admin-btn" onclick="abrirNuevoDoctor()">
+                + Nuevo doctor
+            </button>
+        </header>
+
+        <div id="adminAviso" class="admin-aviso admin-oculto"
+             role="status" aria-live="polite"></div>
+
+        <section id="vistaResumen">
+            <div class="admin-cards">
+                <article class="admin-card">
+                    <small>Total de doctores</small>
+                    <strong id="totalDoctores">—</strong>
+                </article>
+                <article class="admin-card">
+                    <small>Doctores activos</small>
+                    <strong id="doctoresActivos">—</strong>
+                </article>
+                <article class="admin-card">
+                    <small>Doctores inactivos</small>
+                    <strong id="doctoresInactivos">—</strong>
+                </article>
+            </div>
+
+            <div class="admin-panel">
+                <h2>Bienvenida a la administración</h2>
+                <p>
+                    Desde este panel puedes administrar los doctores
+                    de la clínica y controlar sus accesos.
+                </p>
+                <button class="admin-btn"
+                        onclick="mostrarVista('doctores')">
+                    Gestionar doctores
+                </button>
+            </div>
+        </section>
+
+        <section id="vistaDoctores" class="admin-oculto">
+            <div class="admin-panel">
+                <div class="admin-toolbar">
+                    <h2>Personal médico</h2>
+                    <input class="admin-input"
+                           style="max-width:300px"
+                           id="buscarDoctor"
+                           placeholder="Buscar doctor..."
+                           oninput="mostrarTabla()">
+                </div>
+
+                <div class="admin-tabla-contenedor">
+                    <table class="admin-tabla">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Especialidad</th>
+                                <th>Correo</th>
+                                <th>Consulta</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaDoctores">
+                            <tr>
+                                <td colspan="6">Cargando...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <section id="panelFormulario"
+                 class="admin-panel admin-oculto">
+            <h2 id="tituloFormulario">Nuevo doctor</h2>
+
+            <form id="formDoctor" class="admin-formulario">
+                <div class="admin-campo">
+                    <label for="nombre">Nombre completo</label>
+                    <input class="admin-input" id="nombre"
+                           maxlength="120" required>
+                </div>
+
+                <div class="admin-campo">
+                    <label for="correo">Correo electrónico</label>
+                    <input class="admin-input" id="correo"
+                           type="email" maxlength="150" required>
+                </div>
+
+                <div class="admin-campo">
+                    <label for="especialidad">Especialidad</label>
+                    <select class="admin-input" id="especialidad" required>
+                        <option value="">Selecciona una especialidad</option>
+                        <option>Medicina general</option>
+                        <option>Pediatría</option>
+                        <option>Ginecología</option>
+                        <option>Cardiología</option>
+                        <option>Dermatología</option>
+                        <option>Odontología</option>
+                    </select>
+                </div>
+
+                <div class="admin-campo">
+                    <label for="telefono">Teléfono</label>
+                    <input class="admin-input" id="telefono"
+                           maxlength="30">
+                </div>
+
+                <div class="admin-campo">
+                    <label for="precio">Precio de consulta</label>
+                    <input class="admin-input" id="precio"
+                           type="number" min="0" max="99999999.99"
+                           step="0.01" value="0" required>
+                </div>
+
+                <div class="admin-campo" id="campoContrasena">
+                    <label for="contrasena">Contraseña temporal</label>
+                    <input class="admin-input" id="contrasena"
+                           type="password" minlength="8"
+                           autocomplete="new-password">
+                </div>
+
+                <div class="admin-formulario-acciones">
+                    <button class="admin-btn" id="guardarDoctor"
+                            type="submit">Guardar doctor</button>
+                    <button class="admin-btn secundario"
+                            type="button" onclick="cerrarFormulario()">
+                        Cancelar
+                    </button>
+                </div>
+            </form>
+        </section>
+    </main>
+</div>
+
+<script src="js/api.js"></script>
+
+<script>
+"use strict";
+
+let doctores = [];
+let doctorEditando = null;
+
+const elemento = id => document.getElementById(id);
+
+function aviso(mensaje, tipo = "info") {
+    const caja = elemento("adminAviso");
+    caja.textContent = mensaje;
+    caja.className = "admin-aviso " + tipo;
+    caja.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+function mostrarVista(vista) {
+    elemento("vistaResumen").classList.toggle(
+        "admin-oculto", vista !== "resumen"
+    );
+    elemento("vistaDoctores").classList.toggle(
+        "admin-oculto", vista !== "doctores"
+    );
+
+    elemento("navResumen").classList.toggle(
+        "activo", vista === "resumen"
+    );
+    elemento("navDoctores").classList.toggle(
+        "activo", vista === "doctores"
+    );
+
+    cerrarFormulario();
+}
+
+async function cargarDatos() {
+    try {
+        const resultados = await Promise.all([
+            llamarApi("/admin/doctores"),
+            llamarApi("/admin/resumen")
+        ]);
+
+        doctores = resultados[0];
+        const resumen = resultados[1];
+
+        elemento("totalDoctores").textContent = resumen.total;
+        elemento("doctoresActivos").textContent = resumen.activos;
+        elemento("doctoresInactivos").textContent = resumen.inactivos;
+
+        mostrarTabla();
+    } catch (error) {
+        aviso(error.message, "error");
+    }
+}
+
+function crearCelda(fila, texto) {
+    const celda = document.createElement("td");
+    celda.textContent = texto == null ? "" : String(texto);
+    fila.appendChild(celda);
+    return celda;
+}
+
+function crearBoton(texto, accion, clase = "secundario") {
+    const boton = document.createElement("button");
+    boton.type = "button";
+    boton.className = "admin-btn " + clase;
+    boton.textContent = texto;
+    boton.addEventListener("click", accion);
+    return boton;
+}
+
+function mostrarTabla() {
+    const busqueda = elemento("buscarDoctor")
+        .value.trim().toLowerCase();
+
+    const filtrados = doctores.filter(doctor =>
+        [doctor.nombre, doctor.correo, doctor.especialidad]
+            .some(valor => String(valor || "")
+                .toLowerCase().includes(busqueda))
+    );
+
+    const cuerpo = elemento("tablaDoctores");
+    cuerpo.replaceChildren();
+
+    if (!filtrados.length) {
+        const fila = document.createElement("tr");
+        const celda = crearCelda(fila, "No se encontraron doctores.");
+        celda.colSpan = 6;
+        cuerpo.appendChild(fila);
+        return;
+    }
+
+    filtrados.forEach(doctor => {
+        const fila = document.createElement("tr");
+
+        crearCelda(fila, doctor.nombre);
+        crearCelda(fila, doctor.especialidad);
+        crearCelda(fila, doctor.correo);
+        crearCelda(fila, dinero(Number(doctor.precioConsulta)));
+
+        const estadoCelda = document.createElement("td");
+        const estado = document.createElement("span");
+        estado.className = "admin-estado " +
+            (doctor.activo ? "si" : "no");
+        estado.textContent = doctor.activo ? "Activo" : "Inactivo";
+        estadoCelda.appendChild(estado);
+        fila.appendChild(estadoCelda);
+
+        const acciones = document.createElement("td");
+        acciones.className = "admin-acciones";
+
+        acciones.appendChild(crearBoton(
+            "Editar", () => editarDoctor(doctor)
+        ));
+
+        acciones.appendChild(crearBoton(
+            doctor.activo ? "Desactivar" : "Reactivar",
+            () => cambiarEstado(doctor),
+            doctor.activo ? "peligro" : "exito"
+        ));
+
+        acciones.appendChild(crearBoton(
+            "Contraseña", () => restablecerContrasena(doctor)
+        ));
+
+        fila.appendChild(acciones);
+        cuerpo.appendChild(fila);
+    });
+}
+
+function abrirNuevoDoctor() {
+    doctorEditando = null;
+    elemento("formDoctor").reset();
+    elemento("precio").value = "0";
+    elemento("tituloFormulario").textContent = "Registrar nuevo doctor";
+    elemento("campoContrasena").classList.remove("admin-oculto");
+    elemento("contrasena").required = true;
+    elemento("panelFormulario").classList.remove("admin-oculto");
+    elemento("panelFormulario").scrollIntoView({ behavior: "smooth" });
+}
+
+function editarDoctor(doctor) {
+    doctorEditando = doctor.id;
+    elemento("nombre").value = doctor.nombre;
+    elemento("correo").value = doctor.correo;
+    elemento("especialidad").value = doctor.especialidad;
+    elemento("telefono").value = doctor.telefono || "";
+    elemento("precio").value = doctor.precioConsulta;
+    elemento("contrasena").value = "";
+    elemento("contrasena").required = false;
+    elemento("campoContrasena").classList.add("admin-oculto");
+    elemento("tituloFormulario").textContent =
+        "Editar doctor: " + doctor.nombre;
+    elemento("panelFormulario").classList.remove("admin-oculto");
+    elemento("panelFormulario").scrollIntoView({ behavior: "smooth" });
+}
+
+function cerrarFormulario() {
+    elemento("panelFormulario").classList.add("admin-oculto");
+    elemento("formDoctor").reset();
+    doctorEditando = null;
+}
+
+elemento("formDoctor").addEventListener("submit", async evento => {
+    evento.preventDefault();
+
+    const boton = elemento("guardarDoctor");
+
+    const datos = {
+        nombre: elemento("nombre").value.trim(),
+        correo: elemento("correo").value.trim(),
+        especialidad: elemento("especialidad").value,
+        telefono: elemento("telefono").value.trim(),
+        precioConsulta: Number(elemento("precio").value)
+    };
+
+    if (doctorEditando === null) {
+        datos.contrasena = elemento("contrasena").value;
+    }
+
+    boton.disabled = true;
+
+    try {
+        const editando = doctorEditando !== null;
+
+        await llamarApi(
+            editando
+                ? "/admin/doctores/" + doctorEditando
+                : "/doctores",
+            {
+                metodo: editando ? "PUT" : "POST",
+                cuerpo: datos
+            }
+        );
+
+        cerrarFormulario();
+        mostrarVista("doctores");
+        await cargarDatos();
+
+        aviso(
+            editando
+                ? "Doctor actualizado correctamente."
+                : "Doctor registrado correctamente.",
+            "exito"
+        );
+    } catch (error) {
+        aviso(error.message, "error");
+    } finally {
+        boton.disabled = false;
+    }
+});
+
+async function cambiarEstado(doctor) {
+    const activar = !doctor.activo;
+
+    const mensaje = activar
+        ? "¿Reactivar a " + doctor.nombre + "?"
+        : "¿Desactivar a " + doctor.nombre + "?";
+
+    if (!confirm(mensaje)) return;
+
+    try {
+        await llamarApi(
+            "/admin/doctores/" + doctor.id + "/estado",
+            {
+                metodo: "PATCH",
+                cuerpo: { activo: activar }
+            }
+        );
+
+        await cargarDatos();
+        aviso("Estado actualizado correctamente.", "exito");
+    } catch (error) {
+        aviso(error.message, "error");
+    }
+}
+
+async function restablecerContrasena(doctor) {
+    const nueva = prompt(
+        "Nueva contraseña temporal para " + doctor.nombre +
+        "\nMínimo 8 caracteres:"
+    );
+
+    if (nueva === null) return;
+
+    if (nueva.length < 8 || nueva.length > 128) {
+        aviso("La contraseña debe tener entre 8 y 128 caracteres.", "error");
+        return;
+    }
+
+    if (!confirm("¿Restablecer la contraseña de " + doctor.nombre + "?")) {
+        return;
+    }
+
+    try {
+        await llamarApi(
+            "/admin/doctores/" + doctor.id + "/contrasena",
+            {
+                metodo: "PATCH",
+                cuerpo: { contrasena: nueva }
+            }
+        );
+
+        aviso(
+            "Contraseña restablecida. Comunícala al doctor por un canal seguro.",
+            "exito"
+        );
+    } catch (error) {
+        aviso(error.message, "error");
+    }
+}
+
+// Verificar que haya una sesión de administrador.
+async function iniciarAdmin() {
+    const usuario = obtenerUsuarioGuardado();
+
+    if (!obtenerToken() || !usuario || usuario.rol !== "admin") {
+        window.location.replace("login.html");
+        return;
+    }
+
+    await cargarDatos();
+}
+
+iniciarAdmin();
+</script>
+</body>
+</html>
